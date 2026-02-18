@@ -12,46 +12,17 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { STATUS_LABELS, STATUS_VARIANTS } from "@/constants/plush"
 import { cn } from "@/lib/utils"
-
-export type PlushStyle =
-  | "classic-teddy"
-  | "modern-cute"
-  | "cartoon"
-  | "realistic"
-  | "mini"
-
-export type PlushieStatus = "complete" | "processing" | "failed"
-
-export interface MockPlushie {
-  id: string
-  url: string
-  originalUrl?: string
-  createdAt: Date
-  style: PlushStyle
-  isFavorite: boolean
-  status: PlushieStatus
-}
+import type { PlushieGeneration } from "@/types/plush"
 
 interface GalleryItemCardProps {
-  item: MockPlushie
-  onView: (item: MockPlushie) => void
-  onDownload: (item: MockPlushie) => void
-  onDelete: (item: MockPlushie) => void
-  onShare: (item: MockPlushie) => void
-  onFavorite: (item: MockPlushie) => void
-}
-
-const statusLabels: Record<PlushieStatus, string> = {
-  complete: "Concluído",
-  processing: "Processando",
-  failed: "Falhou",
-}
-
-const statusVariants: Record<PlushieStatus, "default" | "secondary" | "destructive"> = {
-  complete: "default",
-  processing: "secondary",
-  failed: "destructive",
+  item: PlushieGeneration
+  onView: (item: PlushieGeneration) => void
+  onDownload: (item: PlushieGeneration) => void
+  onDelete: (item: PlushieGeneration) => void
+  onShare: (item: PlushieGeneration) => void
+  onFavorite: (item: PlushieGeneration) => void
 }
 
 export function GalleryItemCard({
@@ -99,7 +70,7 @@ export function GalleryItemCard({
       >
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         <p className="text-sm text-muted-foreground">Gerando seu pelúcia...</p>
-        <Badge variant={statusVariants[item.status]}>{statusLabels[item.status]}</Badge>
+        <Badge variant={STATUS_VARIANTS[item.status]}>{STATUS_LABELS[item.status]}</Badge>
       </div>
     )
   }
@@ -134,10 +105,10 @@ export function GalleryItemCard({
       {/* Status Badge */}
       <div className="absolute left-2 top-2">
         <Badge
-          variant={statusVariants[item.status]}
+          variant={STATUS_VARIANTS[item.status]}
           className="bg-black/60 text-white border-transparent hover:bg-black/70"
         >
-          {statusLabels[item.status]}
+          {STATUS_LABELS[item.status]}
         </Badge>
       </div>
 

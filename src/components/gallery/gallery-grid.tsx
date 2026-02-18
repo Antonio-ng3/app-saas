@@ -1,15 +1,16 @@
 "use client"
 
 import { Skeleton } from "@/components/ui/skeleton"
-import { GalleryItemCard, type MockPlushie } from "./gallery-item-card"
+import type { PlushieGeneration } from "@/types/plush"
+import { GalleryItemCard } from "./gallery-item-card"
 
 interface GalleryGridProps {
-  items: MockPlushie[]
-  onView: (item: MockPlushie) => void
-  onDownload: (item: MockPlushie) => void
-  onDelete: (item: MockPlushie) => void
-  onShare: (item: MockPlushie) => void
-  onFavorite: (item: MockPlushie) => void
+  items: PlushieGeneration[]
+  onView: (item: PlushieGeneration) => void
+  onDownload: (item: PlushieGeneration) => void
+  onDelete: (item: PlushieGeneration) => void
+  onShare: (item: PlushieGeneration) => void
+  onFavorite: (item: PlushieGeneration) => void
   loading?: boolean
 }
 

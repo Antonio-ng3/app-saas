@@ -3,8 +3,7 @@
 import * as React from "react"
 import { Check, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-export type QualityLevel = "standard" | "high" | "ultra"
+import type { QualityLevel } from "@/types/plush"
 
 interface QualityOption {
   id: QualityLevel

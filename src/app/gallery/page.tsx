@@ -7,7 +7,6 @@ import {
   ChevronDown,
 } from "lucide-react"
 import { GalleryGrid } from "@/components/gallery/gallery-grid"
-import type { MockPlushie, PlushStyle } from "@/components/gallery/gallery-item-card"
 import { ImagePreviewModal } from "@/components/gallery/image-preview-modal"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,128 +17,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
+import { STYLE_LABELS_PT, ALL_STYLES_LABEL } from "@/constants/plush"
+import { MOCK_PLUSHIES } from "@/lib/mock-data/plushie"
 import { cn } from "@/lib/utils"
-
-interface FilterOptions {
-  style?: string | null
-  dateSort?: "newest" | "oldest"
-  favoritesOnly?: boolean
-}
-
-const styleLabels: Record<PlushStyle, string> = {
-  "classic-teddy": "Urso Clássico",
-  "modern-cute": "Fofinho Moderno",
-  "cartoon": "Desenho Animado",
-  "realistic": "Realista",
-  "mini": "Mini",
-}
-
-const allStylesLabel = "Todos os Estilos"
-
-// Mock data - 12 plushie items with varied styles and dates
-const mockGalleryItems: MockPlushie[] = [
-  {
-    id: "1",
-    url: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80",
-    originalUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=80",
-    createdAt: new Date("2026-02-15"),
-    style: "classic-teddy",
-    isFavorite: true,
-    status: "complete",
-  },
-  {
-    id: "2",
-    url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
-    originalUrl: "https://images.unsplash.com/photo-1544376798-89aa6b82c6cd?w=800&q=80",
-    createdAt: new Date("2026-02-14"),
-    style: "modern-cute",
-    isFavorite: false,
-    status: "complete",
-  },
-  {
-    id: "3",
-    url: "https://images.unsplash.com/photo-1595815771614-ade9d652a65d?w=800&q=80",
-    createdAt: new Date("2026-02-13"),
-    style: "cartoon",
-    isFavorite: true,
-    status: "complete",
-  },
-  {
-    id: "4",
-    url: "https://images.unsplash.com/photo-1559563362-c667ba5f5480?w=800&q=80",
-    originalUrl: "https://images.unsplash.com/photo-1518005052300-a4ef6c3e8df6?w=800&q=80",
-    createdAt: new Date("2026-02-12"),
-    style: "realistic",
-    isFavorite: false,
-    status: "complete",
-  },
-  {
-    id: "5",
-    url: "https://images.unsplash.com/photo-1605656594284-0fa6f9c1644b?w=800&q=80",
-    createdAt: new Date("2026-02-11"),
-    style: "mini",
-    isFavorite: false,
-    status: "complete",
-  },
-  {
-    id: "6",
-    url: "https://images.unsplash.com/photo-1576426079877-4e3b8dd8ad7e?w=800&q=80",
-    originalUrl: "https://images.unsplash.com/photo-1518882605630-8a9fed15b5bf?w=800&q=80",
-    createdAt: new Date("2026-02-10"),
-    style: "classic-teddy",
-    isFavorite: true,
-    status: "complete",
-  },
-  {
-    id: "7",
-    url: "https://images.unsplash.com/photo-1566305418082-8562f1e2c799?w=800&q=80",
-    createdAt: new Date("2026-02-09"),
-    style: "modern-cute",
-    isFavorite: false,
-    status: "complete",
-  },
-  {
-    id: "8",
-    url: "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=800&q=80",
-    createdAt: new Date("2026-02-08"),
-    style: "cartoon",
-    isFavorite: false,
-    status: "complete",
-  },
-  {
-    id: "9",
-    url: "https://images.unsplash.com/photo-1624788137628-1bf26d7b5950?w=800&q=80",
-    originalUrl: "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=800&q=80",
-    createdAt: new Date("2026-02-07"),
-    style: "realistic",
-    isFavorite: false,
-    status: "complete",
-  },
-  {
-    id: "10",
-    url: "https://images.unsplash.com/photo-1601597111158-2fceff292cdc?w=800&q=80",
-    createdAt: new Date("2026-02-06"),
-    style: "mini",
-    isFavorite: true,
-    status: "complete",
-  },
-  {
-    id: "11",
-    url: "https://images.unsplash.com/photo-1535295972055-1c762f4483e5?w=800&q=80",
-    createdAt: new Date("2026-02-05"),
-    style: "classic-teddy",
-    isFavorite: false,
-    status: "processing",
-  },
-  {
-    id: "12",
-    url: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&q=80",
-    createdAt: new Date("2026-02-04"),
-    style: "modern-cute",
-    isFavorite: false,
-    status: "complete",
-  },
-]
+import type { PlushieGeneration, FilterOptions, PlushStyle } from "@/types/plush"
 
 export default function GalleryPage() {
   const [filters, setFilters] = React.useState<FilterOptions>({
@@ -147,8 +28,8 @@ export default function GalleryPage() {
     dateSort: "newest",
     favoritesOnly: false,
   })
-  const [selectedItem, setSelectedItem] = React.useState<MockPlushie | null>(null)
-  const [items, setItems] = React.useState<MockPlushie[]>(mockGalleryItems)
+  const [selectedItem, setSelectedItem] = React.useState<PlushieGeneration | null>(null)
+  const [items, setItems] = React.useState<PlushieGeneration[]>(MOCK_PLUSHIES)
 
   // Apply filters to items
   const filteredItems = React.useMemo(() => {
@@ -178,7 +59,7 @@ export default function GalleryPage() {
     setFilters((prev) => ({ ...prev, ...newFilters }))
   }
 
-  const handleViewItem = (item: MockPlushie) => {
+  const handleViewItem = (item: PlushieGeneration) => {
     setSelectedItem(item)
   }
 
@@ -197,13 +78,13 @@ export default function GalleryPage() {
     setSelectedItem(filteredItems[newIndex] ?? null)
   }
 
-  const handleDownload = (item: MockPlushie) => {
+  const handleDownload = (item: PlushieGeneration) => {
     // In a real app, this would download the image
     // eslint-disable-next-line no-console
     console.log("Downloading:", item.id)
   }
 
-  const handleShare = async (item: MockPlushie) => {
+  const handleShare = async (item: PlushieGeneration) => {
     if (navigator.share) {
       try {
         await navigator.share({
@@ -220,7 +101,7 @@ export default function GalleryPage() {
     }
   }
 
-  const handleDelete = (item: MockPlushie) => {
+  const handleDelete = (item: PlushieGeneration) => {
     // In a real app, this would delete from database
     setItems((prev) => prev.filter((i) => i.id !== item.id))
     if (selectedItem?.id === item.id) {
@@ -228,7 +109,7 @@ export default function GalleryPage() {
     }
   }
 
-  const handleFavorite = (item: MockPlushie) => {
+  const handleFavorite = (item: PlushieGeneration) => {
     setItems((prev) =>
       prev.map((i) =>
         i.id === item.id ? { ...i, isFavorite: !i.isFavorite } : i
@@ -269,7 +150,7 @@ export default function GalleryPage() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2">
                     <Filter className="h-4 w-4" />
-                    {filters.style ? styleLabels[filters.style as PlushStyle] : allStylesLabel}
+                    {filters.style ? STYLE_LABELS_PT[filters.style as PlushStyle] : ALL_STYLES_LABEL}
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -279,12 +160,12 @@ export default function GalleryPage() {
                   <DropdownMenuItem
                     onClick={() => handleFilterChange({ style: null })}
                   >
-                    {allStylesLabel}
+                    {ALL_STYLES_LABEL}
                   </DropdownMenuItem>
-                  {Object.entries(styleLabels).map(([key, label]) => (
+                  {Object.entries(STYLE_LABELS_PT).map(([key, label]) => (
                     <DropdownMenuItem
                       key={key}
-                      onClick={() => handleFilterChange({ style: key })}
+                      onClick={() => handleFilterChange({ style: key as PlushStyle })}
                     >
                       {label}
                     </DropdownMenuItem>

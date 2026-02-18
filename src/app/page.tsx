@@ -21,6 +21,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { STYLE_LABELS_PT } from "@/constants/plush";
+import { getHomepageGallery } from "@/lib/mock-data/plushie";
+import type { PlushStyle } from "@/types/plush";
 
 export default function HomePage() {
   // Mock images for before/after slider
@@ -28,38 +31,11 @@ export default function HomePage() {
   const mockAfterImage = "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80";
 
   // Mock gallery images
-  const galleryImages = [
-    {
-      id: 1,
-      url: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=400&q=80",
-      style: "Classic Teddy",
-    },
-    {
-      id: 2,
-      url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80",
-      style: "Modern Cute",
-    },
-    {
-      id: 3,
-      url: "https://images.unsplash.com/photo-1566755385547-09c93b9593b1?w=400&q=80",
-      style: "Cartoon",
-    },
-    {
-      id: 4,
-      url: "https://images.unsplash.com/photo-1516726817505-f5ed825624d8?w=400&q=80",
-      style: "Realistic",
-    },
-    {
-      id: 5,
-      url: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&q=80",
-      style: "Mini",
-    },
-    {
-      id: 6,
-      url: "https://images.unsplash.com/photo-1522673607200-1645062cd958?w=400&q=80",
-      style: "Classic Teddy",
-    },
-  ];
+  const galleryImages = getHomepageGallery().map(item => ({
+    id: item.id,
+    url: item.url,
+    style: STYLE_LABELS_PT[item.style as PlushStyle],
+  }));
 
   // Mock testimonials
   const testimonials = [

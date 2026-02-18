@@ -7,47 +7,15 @@ import { UserProfile } from "@/components/auth/user-profile"
 import { CreditsDisplay } from "@/components/credits-display"
 import { GenerationStatus } from "@/components/generation-status"
 import { ImageUploadZone } from "@/components/image-upload-zone"
-import { QualityToggle, QualityLevel } from "@/components/quality-toggle"
-import { RecentGallery, MockPlushie } from "@/components/recent-gallery"
-import { StyleSelector, PlushStyle } from "@/components/style-selector"
+import { QualityToggle } from "@/components/quality-toggle"
+import { RecentGallery } from "@/components/recent-gallery"
+import { StyleSelector } from "@/components/style-selector"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useSession } from "@/lib/auth-client"
+import { getRecentPlushies } from "@/lib/mock-data/plushie"
 import { cn } from "@/lib/utils"
-
-// Mock data for recent generations
-const mockRecentPlushies: MockPlushie[] = [
-  {
-    id: "1",
-    url: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=400&q=80",
-    style: "classic-teddy",
-    status: "complete",
-    createdAt: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-  },
-  {
-    id: "2",
-    url: "https://images.unsplash.com/photo-1595814433015-e6f5ce69614e?w=400&q=80",
-    style: "modern-cute",
-    status: "complete",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-  },
-  {
-    id: "3",
-    url: "https://images.unsplash.com/photo-1546480976-7a327819de10?w=400&q=80",
-    style: "cartoon",
-    status: "processing",
-    createdAt: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-  },
-  {
-    id: "4",
-    url: "https://images.unsplash.com/photo-1558679908-535c6fb4e0e9?w=400&q=80",
-    style: "realistic",
-    status: "complete",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-  },
-]
-
-type GenerationState = "idle" | "analyzing" | "generating" | "complete" | "error"
+import type { GenerationState, PlushiePreview, PlushStyle, QualityLevel } from "@/types/plush"
 
 export default function DashboardPage() {
   const { data: session, isPending } = useSession()
@@ -59,7 +27,7 @@ export default function DashboardPage() {
   const [credits, setCredits] = React.useState(5)
   const [generationState, setGenerationState] = React.useState<GenerationState>("idle")
   const [progress, setProgress] = React.useState(0)
-  const [recentGenerations] = React.useState<MockPlushie[]>(mockRecentPlushies)
+  const [recentGenerations] = React.useState<PlushiePreview[]>(getRecentPlushies())
 
   // Simulate generation progress
   React.useEffect(() => {

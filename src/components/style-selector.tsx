@@ -3,8 +3,7 @@
 import * as React from "react"
 import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-export type PlushStyle = "classic-teddy" | "modern-cute" | "cartoon" | "realistic" | "mini"
+import type { PlushStyle } from "@/types/plush"
 
 interface StyleOption {
   id: PlushStyle

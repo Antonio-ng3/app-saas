@@ -1,59 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { Loader2, CheckCircle2, XCircle, Sparkles } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { GENERATION_STATUS_MESSAGES } from "@/constants/plush"
 import { cn } from "@/lib/utils"
+import type { GenerationState } from "@/types/plush"
 
-type GenerationState = "idle" | "analyzing" | "generating" | "complete" | "error"
-
-interface StatusConfig {
-  title: string
-  description: string
-  icon: React.ComponentType<{ className?: string }>
-  animatedMessages?: readonly string[]
-}
-
-const statusMessages: Record<GenerationState, StatusConfig> = {
-  idle: {
-    title: "Ready to Generate",
-    description: "Upload an image and select a style to get started",
-    icon: Sparkles,
-  },
-  analyzing: {
-    title: "Analyzing Your Image",
-    description: "Our AI is studying the details to create the perfect plush",
-    icon: Loader2,
-    animatedMessages: [
-      "Detecting shapes and contours...",
-      "Analyzing colors and textures...",
-      "Preparing plush transformation...",
-      "Almost ready...",
-    ] as const,
-  },
-  generating: {
-    title: "Creating Your Plush",
-    description: "Bringing your adorable plush to life",
-    icon: Loader2,
-    animatedMessages: [
-      "Adding soft fur textures...",
-      "Creating cute facial features...",
-      "Refining plush details...",
-      "Applying final touches...",
-      "Almost there...",
-    ] as const,
-  },
-  complete: {
-    title: "Your Plush is Ready!",
-    description: "Your adorable plush has been generated successfully",
-    icon: CheckCircle2,
-  },
-  error: {
-    title: "Generation Failed",
-    description: "Something went wrong. Please try again.",
-    icon: XCircle,
-  },
-}
+export type { GenerationState }
 
 interface GenerationStatusProps {
   state: GenerationState
@@ -71,7 +25,7 @@ export function GenerationStatus({
   className,
 }: GenerationStatusProps) {
   const [animatedIndex, setAnimatedIndex] = React.useState(0)
-  const statusConfig = statusMessages[state]
+  const statusConfig = GENERATION_STATUS_MESSAGES[state]
 
   // Cycle through animated messages
   React.useEffect(() => {

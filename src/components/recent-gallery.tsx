@@ -2,45 +2,16 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, Clock, CheckCircle2, Loader2 } from "lucide-react"
+import { ArrowRight, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { STATUS_CONFIG } from "@/constants/plush"
 import { cn } from "@/lib/utils"
-
-export type PlushStatus = "complete" | "processing" | "queued"
-
-export interface MockPlushie {
-  id: string
-  url: string
-  style: string
-  status: PlushStatus
-  createdAt: Date
-}
+import type { PlushiePreview, PlushieStatus } from "@/types/plush"
 
 interface RecentGalleryProps {
-  items?: MockPlushie[]
+  items?: PlushiePreview[]
   maxItems?: number
   className?: string
-}
-
-const statusConfig = {
-  complete: {
-    label: "Pronto",
-    icon: CheckCircle2,
-    variant: "default" as const,
-    bgColor: "bg-green-500/20 text-green-600 dark:text-green-400",
-  },
-  processing: {
-    label: "Gerando",
-    icon: Loader2,
-    variant: "secondary" as const,
-    bgColor: "bg-primary/20 text-primary",
-  },
-  queued: {
-    label: "Na fila",
-    icon: Clock,
-    variant: "outline" as const,
-    bgColor: "bg-muted-foreground/20 text-muted-foreground",
-  },
 }
 
 export function RecentGallery({
@@ -79,7 +50,7 @@ export function RecentGallery({
       {displayItems.length > 0 ? (
         <div className="grid grid-cols-2 gap-3">
           {displayItems.map((item) => {
-            const config = statusConfig[item.status]
+            const config = STATUS_CONFIG[item.status as PlushieStatus]
             const StatusIcon = config.icon
 
             return (

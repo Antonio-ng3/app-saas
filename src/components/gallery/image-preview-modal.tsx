@@ -18,18 +18,18 @@ import {
   DialogContent,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import type { MockPlushie } from "./gallery-item-card"
+import type { PlushieGeneration } from "@/types/plush"
 
 interface ImagePreviewModalProps {
   isOpen: boolean
   onClose: () => void
-  item: MockPlushie | null
-  items: MockPlushie[]
+  item: PlushieGeneration | null
+  items: PlushieGeneration[]
   onNavigate: (direction: "prev" | "next") => void
-  onDownload: (item: MockPlushie) => void
-  onDelete: (item: MockPlushie) => void
-  onShare: (item: MockPlushie) => void
-  onFavorite: (item: MockPlushie) => void
+  onDownload: (item: PlushieGeneration) => void
+  onDelete: (item: PlushieGeneration) => void
+  onShare: (item: PlushieGeneration) => void
+  onFavorite: (item: PlushieGeneration) => void
 }
 
 export function ImagePreviewModal({
