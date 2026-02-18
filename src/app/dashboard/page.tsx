@@ -1,79 +1,274 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { Lock } from "lucide-react";
-import { UserProfile } from "@/components/auth/user-profile";
-import { Button } from "@/components/ui/button";
-import { useDiagnostics } from "@/hooks/use-diagnostics";
-import { useSession } from "@/lib/auth-client";
+import * as React from "react"
+import Link from "next/link"
+import { Lock, Sparkles, Loader2 } from "lucide-react"
+import { UserProfile } from "@/components/auth/user-profile"
+import { CreditsDisplay } from "@/components/credits-display"
+import { GenerationStatus } from "@/components/generation-status"
+import { ImageUploadZone } from "@/components/image-upload-zone"
+import { QualityToggle, QualityLevel } from "@/components/quality-toggle"
+import { RecentGallery, MockPlushie } from "@/components/recent-gallery"
+import { StyleSelector, PlushStyle } from "@/components/style-selector"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { useSession } from "@/lib/auth-client"
+import { cn } from "@/lib/utils"
+
+// Mock data for recent generations
+const mockRecentPlushies: MockPlushie[] = [
+  {
+    id: "1",
+    url: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=400&q=80",
+    style: "classic-teddy",
+    status: "complete",
+    createdAt: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+  },
+  {
+    id: "2",
+    url: "https://images.unsplash.com/photo-1595814433015-e6f5ce69614e?w=400&q=80",
+    style: "modern-cute",
+    status: "complete",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+  },
+  {
+    id: "3",
+    url: "https://images.unsplash.com/photo-1546480976-7a327819de10?w=400&q=80",
+    style: "cartoon",
+    status: "processing",
+    createdAt: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
+  },
+  {
+    id: "4",
+    url: "https://images.unsplash.com/photo-1558679908-535c6fb4e0e9?w=400&q=80",
+    style: "realistic",
+    status: "complete",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
+  },
+]
+
+type GenerationState = "idle" | "analyzing" | "generating" | "complete" | "error"
 
 export default function DashboardPage() {
-  const { data: session, isPending } = useSession();
-  const { isAiReady, loading: diagnosticsLoading } = useDiagnostics();
+  const { data: session, isPending } = useSession()
+
+  // Dashboard state
+  const [selectedImage, setSelectedImage] = React.useState<string | null>(null)
+  const [selectedStyle, setSelectedStyle] = React.useState<PlushStyle>("classic-teddy")
+  const [quality, setQuality] = React.useState<QualityLevel>("high")
+  const [credits, setCredits] = React.useState(5)
+  const [generationState, setGenerationState] = React.useState<GenerationState>("idle")
+  const [progress, setProgress] = React.useState(0)
+  const [recentGenerations] = React.useState<MockPlushie[]>(mockRecentPlushies)
+
+  // Simulate generation progress
+  React.useEffect(() => {
+    if (generationState === "analyzing") {
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 30) {
+            clearInterval(interval)
+            setGenerationState("generating")
+            return 30
+          }
+          return prev + 5
+        })
+      }, 500)
+      return () => clearInterval(interval)
+    }
+    return undefined
+  }, [generationState])
+
+  React.useEffect(() => {
+    if (generationState === "generating") {
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(interval)
+            setGenerationState("complete")
+            setCredits((c) => Math.max(0, c - 1))
+            return 100
+          }
+          return prev + 8
+        })
+      }, 400)
+      return () => clearInterval(interval)
+    }
+    return undefined
+  }, [generationState])
+
+  const handleGenerate = () => {
+    if (!selectedImage || credits <= 0) return
+
+    setGenerationState("analyzing")
+    setProgress(0)
+  }
+
+  const handleReset = () => {
+    setGenerationState("idle")
+    setProgress(0)
+  }
+
+  const handleImageSelect = (file: File) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setSelectedImage(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleImageRemove = () => {
+    setSelectedImage(null)
+  }
 
   if (isPending) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        Loading...
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
-    );
+    )
   }
 
   if (!session) {
     return (
       <div className="container mx-auto px-4 py-12">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="mx-auto max-w-3xl text-center">
           <div className="mb-8">
-            <Lock className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-            <h1 className="text-2xl font-bold mb-2">Protected Page</h1>
-            <p className="text-muted-foreground mb-6">
-              You need to sign in to access the dashboard
+            <Lock className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+            <h1 className="mb-2 text-2xl font-bold">Página Protegida</h1>
+            <p className="mb-6 text-muted-foreground">
+              Você precisa entrar para acessar o painel
             </p>
           </div>
           <UserProfile />
         </div>
       </div>
-    );
+    )
   }
 
+  const isGenerating = generationState === "analyzing" || generationState === "generating"
+  const canGenerate = selectedImage && credits > 0 && !isGenerating
+
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground">
+          Criar sua Pelúcia
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          Transforme suas fotos em pelúcias personalizadas com IA
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-6 border border-border rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">AI Chat</h2>
-          <p className="text-muted-foreground mb-4">
-            Start a conversation with AI using the Vercel AI SDK
-          </p>
-          {(diagnosticsLoading || !isAiReady) ? (
-            <Button disabled={true}>
-              Go to Chat
-            </Button>
-          ) : (
-            <Button asChild>
-              <Link href="/chat">Go to Chat</Link>
-            </Button>
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-8">
+        {/* Left column - Controls (40%) */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Upload Zone */}
+          <Card>
+            <CardContent className="pt-6">
+              <ImageUploadZone
+                onImageSelect={handleImageSelect}
+                onImageRemove={handleImageRemove}
+                selectedImage={selectedImage}
+                disabled={isGenerating}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Style Selector */}
+          <Card>
+            <CardContent className="pt-6">
+              <StyleSelector
+                value={selectedStyle}
+                onChange={setSelectedStyle}
+                disabled={isGenerating}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Quality Toggle */}
+          <Card>
+            <CardContent className="pt-6">
+              <QualityToggle
+                value={quality}
+                onChange={setQuality}
+                disabled={isGenerating}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Credits Display */}
+          <CreditsDisplay credits={credits} maxCredits={10} />
+
+          {/* Generate Button */}
+          <Button
+            size="lg"
+            onClick={handleGenerate}
+            disabled={!canGenerate}
+            className={cn(
+              "w-full gap-2",
+              canGenerate && "bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+            )}
+          >
+            <Sparkles className="h-5 w-5" />
+            {isGenerating ? "Gerando..." : "Gerar Pelúcia"}
+          </Button>
+
+          {!selectedImage && (
+            <p className="text-center text-xs text-muted-foreground">
+              Carregue uma imagem para começar
+            </p>
+          )}
+
+          {selectedImage && credits <= 0 && (
+            <p className="text-center text-xs text-destructive">
+              Você não tem créditos suficientes.{" "}
+              <Link href="/pricing" className="underline hover:text-destructive">
+                Compre mais
+              </Link>
+            </p>
           )}
         </div>
 
-        <div className="p-6 border border-border rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Profile</h2>
-          <p className="text-muted-foreground mb-4">
-            Manage your account settings and preferences
-          </p>
-          <div className="space-y-2">
-            <p>
-              <strong>Name:</strong> {session.user.name}
-            </p>
-            <p>
-              <strong>Email:</strong> {session.user.email}
-            </p>
-          </div>
+        {/* Right column - Status & Gallery (60%) */}
+        <div className="space-y-6 lg:col-span-3">
+          {/* Generation Status */}
+          <GenerationStatus
+            state={generationState}
+            progress={progress}
+            {...(isGenerating && { estimatedTime: Math.ceil((100 - progress) / 8) })}
+            {...(generationState === "error" && { error: "Ocorreu um erro ao gerar sua pelúcia. Tente novamente." })}
+            className="min-h-[180px]"
+          />
+
+          {/* Action buttons for complete/error states */}
+          {generationState === "complete" && (
+            <div className="flex gap-3">
+              <Button onClick={handleReset} variant="outline" className="flex-1">
+                Criar Outra
+              </Button>
+              <Button asChild className="flex-1">
+                <Link href="/gallery">Ver na Galeria</Link>
+              </Button>
+            </div>
+          )}
+
+          {generationState === "error" && (
+            <Button onClick={handleReset} variant="outline" className="w-full">
+              Tentar Novamente
+            </Button>
+          )}
+
+          {/* Recent Gallery */}
+          <Card>
+            <CardContent className="pt-6">
+              <RecentGallery items={recentGenerations} maxItems={4} />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
-  );
+  )
 }
