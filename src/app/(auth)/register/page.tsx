@@ -1,6 +1,7 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { SignUpForm } from "@/components/auth/sign-up-form"
+import { SocialLoginButtons } from "@/components/auth/social-login"
 import {
   Card,
   CardContent,
@@ -24,7 +25,8 @@ export default async function RegisterPage() {
           <CardTitle>Create an account</CardTitle>
           <CardDescription>Get started with your new account</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col items-center">
+        <CardContent className="flex flex-col items-center gap-4">
+          <SocialLoginButtons />
           <SignUpForm />
         </CardContent>
       </Card>

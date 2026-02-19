@@ -1,6 +1,7 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { SignInButton } from "@/components/auth/sign-in-button"
+import { SocialLoginButtons } from "@/components/auth/social-login"
 import {
   Card,
   CardContent,
@@ -30,12 +31,13 @@ export default async function LoginPage({
           <CardTitle>Welcome back</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col items-center">
+        <CardContent className="flex flex-col items-center gap-4">
           {reset === "success" && (
             <p className="mb-4 text-sm text-green-600 dark:text-green-400">
               Password reset successfully. Please sign in with your new password.
             </p>
           )}
+          <SocialLoginButtons />
           <SignInButton />
         </CardContent>
       </Card>

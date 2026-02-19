@@ -115,3 +115,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+@utility container {
+  margin-inline: auto;
+  max-width: var(--breakpoint-2xl, 1400px);
+}

@@ -30,7 +30,7 @@ import type { PlushStyle } from "@/types/plush";
 export default function HomePage() {
   // Mock images for before/after slider
   const mockBeforeImage = "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=80";
-  const mockAfterImage = "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80";
+  const mockAfterImage = "https://images.unsplash.com/photo-1559715541-5daf8a0296d0?w=800&q=80";
 
   // Mock gallery images
   const galleryImages = getHomepageGallery().map(item => ({
