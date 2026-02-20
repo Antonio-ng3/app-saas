@@ -54,9 +54,10 @@ export function RecentGallery({
             const StatusIcon = config.icon
 
             return (
-              <div
+              <Link
+                href="/gallery"
                 key={item.id}
-                className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-muted/30 transition-all hover:border-primary/50 hover:shadow-md"
+                className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-muted/30 transition-all hover:border-primary/50 hover:shadow-md block"
               >
                 {/* Image */}
                 <div className="relative h-full w-full">
@@ -84,7 +85,7 @@ export function RecentGallery({
 
                 {/* Overlay on hover */}
                 <div className="absolute inset-0 bg-foreground/0 opacity-0 transition-opacity group-hover:bg-foreground/5 group-hover:opacity-100" />
-              </div>
+              </Link>
             )
           })}
         </div>
