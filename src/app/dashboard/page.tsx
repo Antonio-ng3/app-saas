@@ -65,11 +65,68 @@ export default function DashboardPage() {
     return undefined
   }, [generationState])
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!selectedImage || credits <= 0) return
 
     setGenerationState("analyzing")
     setProgress(0)
+
+    try {
+      // Step 1: Upload the image
+      setProgress(10)
+
+      // Convert base64 to blob
+      const response = await fetch(selectedImage)
+      const blob = await response.blob()
+      const formData = new FormData()
+      formData.append("file", blob, "upload.jpg")
+
+      const uploadResponse = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload image")
+      }
+
+      const { url: uploadedImageUrl } = await uploadResponse.json()
+      setProgress(30)
+
+      // Step 2: Generate plush using AI
+      setGenerationState("generating")
+      setProgress(40)
+
+      const generateResponse = await fetch("/api/generate-plush", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl: uploadedImageUrl,
+          style: selectedStyle,
+        }),
+      })
+
+      if (!generateResponse.ok) {
+        const errorData = await generateResponse.json()
+        throw new Error(errorData.error || "Failed to generate plush")
+      }
+
+      const { url: plushImageUrl } = await generateResponse.json()
+      // TODO: Store plushImageUrl and display result to user
+      void plushImageUrl // Mark as intentionally unused for now
+      setProgress(100)
+      setGenerationState("complete")
+      setCredits((c) => Math.max(0, c - 1))
+
+      // TODO: Save to database with original and plush URLs
+      // For now, the plush image is generated but not persisted
+
+    } catch (error) {
+      console.error("Error generating plush:", error)
+      setGenerationState("error")
+    }
   }
 
   const handleReset = () => {
