@@ -29,9 +29,10 @@ import type { PlushStyle } from "@/types/plush";
 
 export default function HomePage() {
   // Mock images for before/after slider
-  // Using proper before/after pairs to demonstrate the plush transformation
-  const mockBeforeImage = "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=80"; // Original person
-  const mockAfterImage = "https://images.unsplash.com/photo-1559715541-5daf8a0296d0?w=800&q=80"; // Plush version
+  // Demonstrates the plush transformation: original photo → plush version that covers it
+  // The "after" image (plush) slides over the "before" image (original person)
+  const mockBeforeImage = "https://images.unsplash.com/photo-1544376798-89aa6b82c6cd?w=800&q=80"; // Original person
+  const mockAfterImage = "https://images.unsplash.com/photo-1562040506-a9b32cb51b94?w=800&q=80"; // Plush version
 
   // Mock gallery images
   const galleryImages = getHomepageGallery().map(item => ({
