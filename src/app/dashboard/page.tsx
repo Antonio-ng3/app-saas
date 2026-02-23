@@ -114,36 +114,38 @@ export default function DashboardPage() {
       }
 
       const { url: plushImageUrl } = await generateResponse.json()
-      // TODO: Store plushImageUrl and display result to user
-      void plushImageUrl // Mark as intentionally unused for now
+      setPlushImageUrl(plushImageUrl)
       setProgress(100)
       setGenerationState("complete")
       setCredits((c) => Math.max(0, c - 1))
 
       // TODO: Save to database with original and plush URLs
-      // For now, the plush image is generated but not persisted
-
     } catch (error) {
       console.error("Error generating plush:", error)
       setGenerationState("error")
     }
   }
 
+  const [plushImageUrl, setPlushImageUrl] = React.useState<string | null>(null)
+
   const handleReset = () => {
     setGenerationState("idle")
     setProgress(0)
+    setPlushImageUrl(null)
   }
 
   const handleImageSelect = (file: File) => {
     const reader = new FileReader()
     reader.onloadend = () => {
       setSelectedImage(reader.result as string)
+      setPlushImageUrl(null)
     }
     reader.readAsDataURL(file)
   }
 
   const handleImageRemove = () => {
     setSelectedImage(null)
+    setPlushImageUrl(null)
   }
 
   if (isPending) {
@@ -257,33 +259,49 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Right column - Status & Gallery (60%) */}
+        {/* Right column - Status, Result & Gallery (60%) */}
         <div className="space-y-6 lg:col-span-3">
-          {/* Generation Status */}
-          <GenerationStatus
-            state={generationState}
-            progress={progress}
-            {...(isGenerating && { estimatedTime: Math.ceil((100 - progress) / 8) })}
-            {...(generationState === "error" && { error: "Ocorreu um erro ao gerar sua pelúcia. Tente novamente." })}
-            className="min-h-[180px]"
-          />
+          {/* Result Display / Generation Status */}
+          {generationState === "complete" && selectedImage && plushImageUrl ? (
+            <div className="space-y-4 animate-in fade-in zoom-in duration-500">
+              <Card className="overflow-hidden border-primary/50 shadow-xl shadow-primary/10">
+                <CardContent className="p-0">
+                  <div className="aspect-square w-full">
+                    <BeforeAfterSlider
+                      beforeImage={selectedImage}
+                      afterImage={plushImageUrl}
+                      beforeLabel="Original"
+                      afterLabel="Pelúcia"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Action buttons for complete/error states */}
-          {generationState === "complete" && (
-            <div className="flex gap-3">
-              <Button onClick={handleReset} variant="outline" className="flex-1">
-                Criar Outra
-              </Button>
-              <Button asChild className="flex-1">
-                <Link href="/gallery">Ver na Galeria</Link>
-              </Button>
+              <div className="flex gap-3">
+                <Button onClick={handleReset} variant="outline" className="flex-1 gap-2">
+                  Criar Outra
+                </Button>
+                <Button asChild className="flex-1 gap-2">
+                  <Link href="/gallery">Ver na Galeria</Link>
+                </Button>
+              </div>
             </div>
-          )}
+          ) : (
+            <>
+              <GenerationStatus
+                state={generationState}
+                progress={progress}
+                {...(isGenerating && { estimatedTime: Math.ceil((100 - progress) / 8) })}
+                {...(generationState === "error" && { error: "Ocorreu um erro ao gerar sua pelúcia. Tente novamente." })}
+                className="min-h-[180px]"
+              />
 
-          {generationState === "error" && (
-            <Button onClick={handleReset} variant="outline" className="w-full">
-              Tentar Novamente
-            </Button>
+              {generationState === "error" && (
+                <Button onClick={handleReset} variant="outline" className="w-full">
+                  Tentar Novamente
+                </Button>
+              )}
+            </>
           )}
 
           {/* Recent Gallery */}
@@ -295,5 +313,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+
   )
 }
