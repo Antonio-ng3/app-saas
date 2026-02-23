@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { join } from "path";
+import { readFile } from "fs/promises";
 
 // Style-specific prompts to append to the base prompt
 const STYLE_PROMPTS = {
@@ -11,18 +13,78 @@ const STYLE_PROMPTS = {
 
 // Base prompt for transforming to plush - enhanced for better results
 const BASE_PLUSH_PROMPT =
-  "Transform the subject into a high-quality plush toy doll. " +
-  "The result must look like a REAL physical stuffed plush toy professionally photographed, NOT a filter, NOT a cartoon illustration, NOT digital art. " +
+  "A high-quality professional product photograph of a handcrafted plush toy doll sitting on a plain background. " +
+  "The plush toy is a recreation of the subject described below. " +
   "Requirements: " +
-  "- Soft fuzzy faux fur fabric with visible texture and fibers " +
-  "- Visible stitching seams and hand-crafted details " +
-  "- Large shiny embroidered eyes (NOT painted, real embroidery thread) " +
-  "- Small embroidered nose and mouth " +
-  "- Plush squishy stuffed appearance with cotton stuffing " +
-  "- Rounded cute toy proportions with slightly oversized head " +
-  "- Studio product photography style with soft professional lighting " +
-  "- Clean white or light gray background " +
-  "- The image should look like a photo of an actual handmade plush toy you could hold in your hands, NOT a digital illustration or 3D render.";
+  "- The doll is made of soft, fuzzy, textured fabrics like felt, velvet, and plush faux fur. " +
+  "- It should have large, expressive, shiny black embroidered eyes with subtle reflections. " +
+  "- The nose and mouth should be small and carefully embroidered. " +
+  "- It features visible artisan craftsmanship, including high-quality stitching and seams. " +
+  "- The proportions are cute and rounded (chibi-style) with a slightly oversized head. " +
+  "- Professional studio lighting with soft shadows, creating a high-end toy commercial look. " +
+  "- NOT a digital illustration, NOT a 3D render, but a REAL physical object photograph.";
+
+async function getImageBase64(imageUrl: string): Promise<string> {
+  if (imageUrl.startsWith("/")) {
+    // Local file path
+    const filePath = join(process.cwd(), "public", imageUrl);
+    const buffer = await readFile(filePath);
+    const mimeType = imageUrl.endsWith(".png") ? "image/png" : "image/jpeg";
+    return `data:${mimeType}; base64, ${buffer.toString("base64")} `;
+  }
+
+  // External URL
+  const response = await fetch(imageUrl);
+  const buffer = await response.arrayBuffer();
+  const contentType = response.headers.get("content-type") || "image/jpeg";
+  return `data:${contentType}; base64, ${Buffer.from(buffer).toString("base64")} `;
+}
+
+async function analyzeSubject(imageUrl: string, apiKey: string): Promise<string> {
+  try {
+    const base64Image = await getImageBase64(imageUrl);
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey} `,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Analyze this image and describe the subject for a plush toy recreation. " +
+                  "Focus on: 1. Hair/Head features (color, style, length), 2. Clothing/Outfit (colors, specific items like jackets or shirts), 3. Key identification features (facial expression, pose, accessories). " +
+                  "Describe the subject as if explaining to someone who will sew a doll of them. Be concise but specific about colors and items."
+              },
+              {
+                type: "image_url",
+                image_url: { url: base64Image }
+              }
+            ],
+          },
+        ],
+        max_tokens: 300,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Vision API error:", await response.text());
+      return "";
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "";
+  } catch (error) {
+    console.error("Error analyzing subject:", error);
+    return "";
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,15 +114,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Build the full prompt with style-specific additions
-    const stylePrompt = STYLE_PROMPTS[style as keyof typeof STYLE_PROMPTS];
-    const fullPrompt = `${BASE_PLUSH_PROMPT} ${stylePrompt}`;
+    // Step 1: Analyze the image to get a description of the subject
+    const subjectDescription = await analyzeSubject(imageUrl, apiKey);
 
-    // Call OpenAI DALL-E API for image generation
+    // Step 2: Build the full prompt with description and style
+    const stylePrompt = STYLE_PROMPTS[style as keyof typeof STYLE_PROMPTS];
+    const fullPrompt = `${BASE_PLUSH_PROMPT} \n\nSubject description: ${subjectDescription} \n\nStyle specific details: ${stylePrompt} `;
+
+    // Step 3: Call OpenAI DALL-E API for image generation
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        "Authorization": `Bearer ${apiKey} `,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -94,6 +159,7 @@ export async function POST(req: NextRequest) {
       url: data.data[0].url,
       revisedPrompt: data.data[0].revised_prompt,
       style,
+      subjectDescription, // For testing/debugging
     });
 
   } catch (error) {
