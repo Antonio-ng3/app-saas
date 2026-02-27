@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Coins } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +14,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSession, signOut } from "@/lib/auth-client";
+import { useCredits } from "@/hooks/use-credits";
 
 export function UserProfile() {
   const { data: session, isPending } = useSession();
+  const { credits } = useCredits();
   const router = useRouter();
 
   if (isPending) {
@@ -73,6 +75,13 @@ export function UserProfile() {
             </p>
           </div>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem disabled className="focus:bg-transparent">
+          <div className="flex items-center gap-2 w-full">
+            <Coins className="h-4 w-4 text-amber-500" />
+            <span className="text-sm">{credits} créditos</span>
+          </div>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/profile" className="flex items-center">
