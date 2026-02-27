@@ -12,6 +12,7 @@ export const user = pgTable(
     emailVerified: boolean("email_verified").default(false).notNull(),
     image: text("image"),
     credits: integer("credits").notNull().default(5),
+    platformRole: text("platform_role").default("user").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

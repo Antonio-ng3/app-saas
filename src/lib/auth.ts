@@ -7,6 +7,15 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
+  user: {
+    additionalFields: {
+      platformRole: {
+        type: ["user", "admin"],
+        defaultValue: "user",
+        input: false,
+      },
+    },
+  },
   // Rate limiting configuration
   rateLimit: {
     window: 15, // 15 minutes
