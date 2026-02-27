@@ -1,6 +1,11 @@
+import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import { join } from "path";
+import { eq } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { user } from "@/lib/schema";
 
 // Style-specific prompts to append to the base prompt
 const STYLE_PROMPTS = {
@@ -88,8 +93,29 @@ async function analyzeSubject(imageUrl: string, apiKey: string): Promise<string>
 
 export async function POST(req: NextRequest) {
   try {
+    // Check authentication
+    const session = await auth.api.getSession({ headers: await headers() });
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { imageUrl, style } = body;
+
+    // Fetch current credits
+    const [currentUser] = await db
+      .select({ credits: user.credits })
+      .from(user)
+      .where(eq(user.id, session.user.id))
+      .limit(1);
+
+    if (!currentUser || currentUser.credits <= 0) {
+      return NextResponse.json(
+        { error: "Insufficient credits. Please upgrade to continue." },
+        { status: 402 } // Payment Required
+      );
+    }
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -156,12 +182,20 @@ export async function POST(req: NextRequest) {
 
     const plushImageUrl = data.data[0].url;
 
-    // Return the generated image URL
+    // Deduct 1 credit after successful generation
+    const [updatedUser] = await db
+      .update(user)
+      .set({ credits: currentUser.credits - 1 })
+      .where(eq(user.id, session.user.id))
+      .returning({ credits: user.credits });
+
+    // Return the generated image URL with updated credits
     return NextResponse.json({
       url: plushImageUrl,
       revisedPrompt: data.data[0].revised_prompt,
       style,
       subjectDescription, // For testing/debugging
+      creditsRemaining: updatedUser?.credits ?? currentUser.credits - 1,
     });
 
   } catch (error) {

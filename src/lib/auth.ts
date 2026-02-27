@@ -7,12 +7,18 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
+  // Rate limiting configuration
+  rateLimit: {
+    window: 15, // 15 minutes
+    max: 5, // maximum 5 attempts per window
+  },
   advanced: {
     cookiePrefix: "plushify",
     useSecureCookies: process.env.NODE_ENV === "production",
     crossSubDomainCookies: {
       enabled: false,
     },
+    sessionMaxAge: 7 * 24 * 60 * 60, // 7 days in seconds
   },
   emailAndPassword: {
     enabled: true,

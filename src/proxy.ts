@@ -9,7 +9,9 @@ import { getSessionCookie } from "better-auth/cookies";
  * Full session validation should be done in each protected page/route.
  */
 export async function proxy(request: NextRequest) {
-  const sessionCookie = getSessionCookie(request);
+  const sessionCookie = getSessionCookie(request, {
+    cookiePrefix: "plushify" // Must match auth.ts configuration
+  });
 
   // Optimistic redirect - cookie existence check only
   // Full validation happens in page components via auth.api.getSession()
