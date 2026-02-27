@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { STYLE_LABELS_PT } from "@/constants/plush";
-import { getHomepageGallery } from "@/lib/mock-data/plushie";
+import { MOCK_PLUSHIES } from "@/lib/mock-data";
 import type { PlushStyle } from "@/types/plush";
 
 export default function HomePage() {
@@ -35,7 +35,7 @@ export default function HomePage() {
   const mockAfterImage = "https://images.unsplash.com/photo-1562040506-a9b32cb51b94?w=800&q=80"; // Plush version
 
   // Mock gallery images
-  const galleryImages = getHomepageGallery().map(item => ({
+  const galleryImages = MOCK_PLUSHIES.map((item) => ({
     id: item.id,
     url: item.url,
     style: STYLE_LABELS_PT[item.style as PlushStyle],
@@ -347,7 +347,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-            {galleryImages.map((image) => (
+            {galleryImages.map((image: { id: string; url: string; style: string }) => (
               <Card
                 key={image.id}
                 className="group relative overflow-hidden border-2 hover:border-primary/50 transition-all cursor-pointer"

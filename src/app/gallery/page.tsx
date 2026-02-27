@@ -5,7 +5,10 @@ import {
   Heart,
   Filter,
   ChevronDown,
+  Lock,
 } from "lucide-react"
+import { useSession } from "@/lib/auth-client"
+import { UserProfile } from "@/components/auth/user-profile"
 import { GalleryGrid } from "@/components/gallery/gallery-grid"
 import { ImagePreviewModal } from "@/components/gallery/image-preview-modal"
 import { Button } from "@/components/ui/button"
@@ -18,11 +21,14 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import { STYLE_LABELS_PT, ALL_STYLES_LABEL } from "@/constants/plush"
-import { MOCK_PLUSHIES } from "@/lib/mock-data/plushie"
+import { MOCK_PLUSHIES } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 import type { PlushieGeneration, FilterOptions, PlushStyle } from "@/types/plush"
 
 export default function GalleryPage() {
+  // ALL hooks must be called first, before any conditional returns
+  const { data: session, isPending } = useSession()
+
   const [filters, setFilters] = React.useState<FilterOptions>({
     style: null,
     dateSort: "newest",
@@ -54,6 +60,35 @@ export default function GalleryPage() {
 
     return result
   }, [items, filters])
+
+  // Early returns for auth state (after all hooks are called)
+  if (isPending) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="animate-pulse">
+            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-muted" />
+            <div className="mx-auto h-8 w-48 rounded bg-muted" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="mx-auto max-w-3xl text-center">
+          <Lock className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+          <h1 className="mb-2 text-2xl font-bold">Página Protegida</h1>
+          <p className="mb-6 text-muted-foreground">
+            Você precisa entrar para acessar a galeria
+          </p>
+          <UserProfile />
+        </div>
+      </div>
+    )
+  }
 
   const handleFilterChange = (newFilters: Partial<FilterOptions>) => {
     setFilters((prev) => ({ ...prev, ...newFilters }))
@@ -102,7 +137,6 @@ export default function GalleryPage() {
   }
 
   const handleDelete = (item: PlushieGeneration) => {
-    // In a real app, this would delete from database
     setItems((prev) => prev.filter((i) => i.id !== item.id))
     if (selectedItem?.id === item.id) {
       setSelectedItem(null)

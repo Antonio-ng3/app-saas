@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { join } from "path";
 import { readFile } from "fs/promises";
+import { join } from "path";
 
 // Style-specific prompts to append to the base prompt
 const STYLE_PROMPTS = {
@@ -154,9 +154,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const plushImageUrl = data.data[0].url;
+
     // Return the generated image URL
     return NextResponse.json({
-      url: data.data[0].url,
+      url: plushImageUrl,
       revisedPrompt: data.data[0].revised_prompt,
       style,
       subjectDescription, // For testing/debugging

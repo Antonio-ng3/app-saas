@@ -56,11 +56,26 @@ export default function ProfilePage() {
       })
     : null;
 
-  const handleEditProfileSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEditProfileSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // In a real app, this would call an API to update the user profile
-    toast.info("Profile updates require backend implementation");
-    setEditProfileOpen(false);
+
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
+
+    const response = await fetch("/api/user/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+
+    if (response.ok) {
+      toast.success("Profile updated successfully");
+      setEditProfileOpen(false);
+      // Reload to refresh session data
+      window.location.reload();
+    } else {
+      toast.error("Failed to update profile");
+    }
   };
 
   return (

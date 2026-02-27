@@ -15,6 +15,20 @@
       "when": 1766719908715,
       "tag": "0001_last_warpath",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772125663710,
+      "tag": "0002_woozy_callisto",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772134091450,
+      "tag": "0003_needy_jack_power",
+      "breakpoints": true
     }
   ]
 }

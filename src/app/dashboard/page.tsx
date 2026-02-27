@@ -4,18 +4,18 @@ import * as React from "react"
 import Link from "next/link"
 import { Lock, Sparkles, Loader2 } from "lucide-react"
 import { UserProfile } from "@/components/auth/user-profile"
+import { BeforeAfterSlider } from "@/components/before-after-slider"
 import { CreditsDisplay } from "@/components/credits-display"
 import { GenerationStatus } from "@/components/generation-status"
 import { ImageUploadZone } from "@/components/image-upload-zone"
 import { QualityToggle } from "@/components/quality-toggle"
-import { RecentGallery } from "@/components/recent-gallery"
 import { StyleSelector } from "@/components/style-selector"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { useCredits } from "@/hooks/use-credits"
 import { useSession } from "@/lib/auth-client"
-import { getRecentPlushies } from "@/lib/mock-data/plushie"
 import { cn } from "@/lib/utils"
-import type { GenerationState, PlushiePreview, PlushStyle, QualityLevel } from "@/types/plush"
+import type { GenerationState, PlushStyle, QualityLevel } from "@/types/plush"
 
 export default function DashboardPage() {
   const { data: session, isPending } = useSession()
@@ -24,46 +24,9 @@ export default function DashboardPage() {
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null)
   const [selectedStyle, setSelectedStyle] = React.useState<PlushStyle>("classic-teddy")
   const [quality, setQuality] = React.useState<QualityLevel>("high")
-  const [credits, setCredits] = React.useState(5)
+  const { credits, refresh: refreshCredits, deduct } = useCredits()
   const [generationState, setGenerationState] = React.useState<GenerationState>("idle")
   const [progress, setProgress] = React.useState(0)
-  const [recentGenerations] = React.useState<PlushiePreview[]>(getRecentPlushies())
-
-  // Simulate generation progress
-  React.useEffect(() => {
-    if (generationState === "analyzing") {
-      const interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 30) {
-            clearInterval(interval)
-            setGenerationState("generating")
-            return 30
-          }
-          return prev + 5
-        })
-      }, 500)
-      return () => clearInterval(interval)
-    }
-    return undefined
-  }, [generationState])
-
-  React.useEffect(() => {
-    if (generationState === "generating") {
-      const interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval)
-            setGenerationState("complete")
-            setCredits((c) => Math.max(0, c - 1))
-            return 100
-          }
-          return prev + 8
-        })
-      }, 400)
-      return () => clearInterval(interval)
-    }
-    return undefined
-  }, [generationState])
 
   const handleGenerate = async () => {
     if (!selectedImage || credits <= 0) return
@@ -117,9 +80,10 @@ export default function DashboardPage() {
       setPlushImageUrl(plushImageUrl)
       setProgress(100)
       setGenerationState("complete")
-      setCredits((c) => Math.max(0, c - 1))
 
-      // TODO: Save to database with original and plush URLs
+      // Deduct credit
+      deduct()
+      refreshCredits()
     } catch (error) {
       console.error("Error generating plush:", error)
       setGenerationState("error")
@@ -303,13 +267,6 @@ export default function DashboardPage() {
               )}
             </>
           )}
-
-          {/* Recent Gallery */}
-          <Card>
-            <CardContent className="pt-6">
-              <RecentGallery items={recentGenerations} maxItems={4} />
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
