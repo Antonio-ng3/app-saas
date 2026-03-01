@@ -20,8 +20,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { STYLE_LABELS_PT, ALL_STYLES_LABEL } from "@/constants/plush"
-import { MOCK_PLUSHIES } from "@/lib/mock-data"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import type { PlushieGeneration, FilterOptions, PlushStyle } from "@/types/plush"
 
@@ -35,7 +45,50 @@ export default function GalleryPage() {
     favoritesOnly: false,
   })
   const [selectedItem, setSelectedItem] = React.useState<PlushieGeneration | null>(null)
-  const [items, setItems] = React.useState<PlushieGeneration[]>(MOCK_PLUSHIES)
+  const [items, setItems] = React.useState<PlushieGeneration[]>([])
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [deleteId, setDeleteId] = React.useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = React.useState(false)
+
+  // Fetch images from API
+  React.useEffect(() => {
+    if (!session) return
+
+    const fetchImages = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch("/api/gallery")
+        if (!response.ok) throw new Error("Failed to fetch gallery")
+
+        const data = await response.json()
+        // Map API response to PlushieGeneration format
+        const mappedData: PlushieGeneration[] = data.map((item: {
+          id: string
+          originalImageUrl: string
+          generatedImageUrl: string
+          style: string
+          createdAt: string
+          isFavorite: boolean
+        }) => ({
+          id: item.id,
+          url: item.generatedImageUrl,
+          originalUrl: item.originalImageUrl,
+          createdAt: new Date(item.createdAt),
+          style: item.style as PlushStyle,
+          isFavorite: item.isFavorite,
+          status: "complete" as const,
+        }))
+        setItems(mappedData)
+      } catch (error) {
+        console.error("Failed to fetch gallery:", error)
+        toast.error("Falha ao carregar galeria")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchImages()
+  }, [session])
 
   // Apply filters to items
   const filteredItems = React.useMemo(() => {
@@ -113,10 +166,22 @@ export default function GalleryPage() {
     setSelectedItem(filteredItems[newIndex] ?? null)
   }
 
-  const handleDownload = (item: PlushieGeneration) => {
-    // In a real app, this would download the image
-    // eslint-disable-next-line no-console
-    console.log("Downloading:", item.id)
+  const handleDownload = async (item: PlushieGeneration) => {
+    try {
+      const response = await fetch(item.url)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `plush-${item.id}.png`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      toast.success("Imagem baixada")
+    } catch (error) {
+      toast.error("Falha ao baixar imagem")
+    }
   }
 
   const handleShare = async (item: PlushieGeneration) => {
@@ -133,22 +198,47 @@ export default function GalleryPage() {
     } else {
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(item.url)
+      toast.success("Link copiado para a área de transferência")
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return
+
+    try {
+      setIsDeleting(true)
+      const response = await fetch(`/api/gallery/${deleteId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) throw new Error("Failed to delete")
+
+      setItems((prev) => prev.filter((i) => i.id !== deleteId))
+      if (selectedItem?.id === deleteId) {
+        setSelectedItem(null)
+      }
+      toast.success("Imagem excluída")
+    } catch (error) {
+      toast.error("Falha ao excluir imagem")
+    } finally {
+      setIsDeleting(false)
+      setDeleteId(null)
     }
   }
 
   const handleDelete = (item: PlushieGeneration) => {
-    setItems((prev) => prev.filter((i) => i.id !== item.id))
-    if (selectedItem?.id === item.id) {
-      setSelectedItem(null)
-    }
+    setDeleteId(item.id)
   }
 
-  const handleFavorite = (item: PlushieGeneration) => {
+  const handleFavorite = async (item: PlushieGeneration) => {
+    // Toggle favorite locally
     setItems((prev) =>
       prev.map((i) =>
         i.id === item.id ? { ...i, isFavorite: !i.isFavorite } : i
       )
     )
+    // Note: Backend favorite toggle would go here when implemented
+    toast.success(item.isFavorite ? "Removido dos favoritos" : "Adicionado aos favoritos")
   }
 
   return (
@@ -238,8 +328,31 @@ export default function GalleryPage() {
           onDelete={handleDelete}
           onShare={handleShare}
           onFavorite={handleFavorite}
+          loading={isLoading}
         />
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir imagem?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A imagem será excluída permanentemente da sua galeria e do armazenamento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Image Preview Modal */}
       <ImagePreviewModal

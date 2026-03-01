@@ -82,3 +82,22 @@ export const verification = pgTable("verification", {
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
 });
+
+export const generatedImage = pgTable(
+  "generated_image",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    originalImageUrl: text("original_image_url").notNull(),
+    generatedImageUrl: text("generated_image_url").notNull(),
+    style: text("style").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    isFavorite: boolean("is_favorite").default(false).notNull(),
+  },
+  (table) => [
+    index("generated_image_user_id_idx").on(table.userId),
+    index("generated_image_created_at_idx").on(table.createdAt),
+  ]
+);

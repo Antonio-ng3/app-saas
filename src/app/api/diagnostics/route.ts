@@ -23,6 +23,8 @@ interface DiagnosticsResponse {
   };
   ai: {
     configured: boolean;
+    chatModel?: string;
+    imageModel?: string;
   };
   storage: {
     configured: boolean;
@@ -121,6 +123,8 @@ export async function GET(req: Request) {
   const authConfigured =
     env.BETTER_AUTH_SECRET && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET;
   const aiConfigured = env.OPENROUTER_API_KEY; // We avoid live-calling the AI provider here
+  const chatModel = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
+  const imageModel = process.env.OPENROUTER_IMAGE_MODEL || "google/nano-banana-pro";
 
   // Storage configuration check
   const storageConfigured = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
@@ -148,6 +152,8 @@ export async function GET(req: Request) {
     },
     ai: {
       configured: aiConfigured,
+      chatModel,
+      imageModel,
     },
     storage: {
       configured: storageConfigured,

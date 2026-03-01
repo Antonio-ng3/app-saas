@@ -150,41 +150,48 @@ export async function upload(
   }
 
   const hasVercelBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  const forceLocalStorage = Boolean(process.env.FORCE_LOCAL_STORAGE);
 
-  if (hasVercelBlob) {
+  if (hasVercelBlob && !forceLocalStorage) {
     // Use Vercel Blob storage
     const pathname = folder ? `${folder}/${sanitizedFilename}` : sanitizedFilename;
-    const blob = await put(pathname, buffer, {
-      access: "public",
-    });
+    try {
+      const blob = await put(pathname, buffer, {
+        access: 'public',
+        addRandomSuffix: true,
+      });
 
-    return {
-      url: blob.url,
-      pathname: blob.pathname,
-    };
-  } else {
-    // Use local filesystem storage
-    const uploadsDir = join(process.cwd(), "public", "uploads");
-    const targetDir = folder ? join(uploadsDir, folder) : uploadsDir;
-
-    // Ensure the directory exists
-    if (!existsSync(targetDir)) {
-      await mkdir(targetDir, { recursive: true });
+      return {
+        url: blob.url,
+        pathname: blob.pathname,
+      };
+    } catch (error) {
+      // If Vercel Blob fails (e.g., private store), fall back to local storage
+      console.warn("Vercel Blob upload failed, falling back to local storage:", error);
     }
-
-    // Write the file
-    const filepath = join(targetDir, sanitizedFilename);
-    await writeFile(filepath, buffer);
-
-    // Return local URL
-    const pathname = folder ? `${folder}/${sanitizedFilename}` : sanitizedFilename;
-    const url = `/uploads/${pathname}`;
-
-    return {
-      url,
-      pathname,
-    };
   }
+
+  // Use local filesystem storage (or fallback from Vercel Blob)
+  const uploadsDir = join(process.cwd(), "public", "uploads");
+  const targetDir = folder ? join(uploadsDir, folder) : uploadsDir;
+
+  // Ensure the directory exists
+  if (!existsSync(targetDir)) {
+    await mkdir(targetDir, { recursive: true });
+  }
+
+  // Write the file
+  const filepath = join(targetDir, sanitizedFilename);
+  await writeFile(filepath, buffer);
+
+  // Return local URL
+  const pathname = folder ? `${folder}/${sanitizedFilename}` : sanitizedFilename;
+  const url = `/uploads/${pathname}`;
+
+  return {
+    url,
+    pathname,
+  };
 }
 
 /**

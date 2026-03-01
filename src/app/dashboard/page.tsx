@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useCredits } from "@/hooks/use-credits"
 import { useSession } from "@/lib/auth-client"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import type { GenerationState, PlushStyle, QualityLevel } from "@/types/plush"
 
@@ -24,7 +25,7 @@ export default function DashboardPage() {
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null)
   const [selectedStyle, setSelectedStyle] = React.useState<PlushStyle>("classic-teddy")
   const [quality, setQuality] = React.useState<QualityLevel>("high")
-  const { credits, refresh: refreshCredits, deduct } = useCredits()
+  const { credits, refresh: refreshCredits } = useCredits()
   const [generationState, setGenerationState] = React.useState<GenerationState>("idle")
   const [progress, setProgress] = React.useState(0)
 
@@ -71,21 +72,34 @@ export default function DashboardPage() {
         }),
       })
 
+      // Handle 402 Payment Required (insufficient credits)
+      if (generateResponse.status === 402) {
+        toast.error("Créditos insuficientes", {
+          description: "Compre mais créditos para continuar gerando.",
+        })
+        setGenerationState("error")
+        refreshCredits()
+        return
+      }
+
       if (!generateResponse.ok) {
         const errorData = await generateResponse.json()
         throw new Error(errorData.error || "Failed to generate plush")
       }
 
-      const { url: plushImageUrl } = await generateResponse.json()
-      setPlushImageUrl(plushImageUrl)
+      const data = await generateResponse.json()
+      // API returns originalImageUrl and generatedImageUrl
+      setPlushImageUrl(data.generatedImageUrl)
       setProgress(100)
       setGenerationState("complete")
 
-      // Deduct credit
-      deduct()
+      // Refresh credits (server already deducted)
       refreshCredits()
+
+      toast.success("Pelúcia gerada com sucesso!")
     } catch (error) {
       console.error("Error generating plush:", error)
+      toast.error("Ocorreu um erro ao gerar sua pelúcia. Tente novamente.")
       setGenerationState("error")
     }
   }

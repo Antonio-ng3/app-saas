@@ -20,6 +20,7 @@ const serverEnvSchema = z.object({
   // AI
   OPENROUTER_API_KEY: z.string().optional(),
   OPENROUTER_MODEL: z.string().default("openai/gpt-4o-mini"),
+  OPENROUTER_IMAGE_MODEL: z.string().default("google/gemini-3.1-flash-image-preview"),
 
   // Image Generation (DALL-E / OpenAI for plush generation)
   OPENAI_API_KEY: z.string().optional(),
