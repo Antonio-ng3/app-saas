@@ -55,12 +55,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!style || !STYLE_PROMPTS[style as keyof typeof STYLE_PROMPTS]) {
-      return NextResponse.json(
-        { error: "Invalid style. Must be one of: " + Object.keys(STYLE_PROMPTS).join(", ") },
-        { status: 400 }
-      );
-    }
 
     const apiKey = process.env.OPENROUTER_API_KEY;
 

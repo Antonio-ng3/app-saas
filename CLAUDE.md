@@ -7,11 +7,12 @@ This is a Next.js 16 boilerplate for building AI-powered applications with authe
 ### Tech Stack
 
 - **Framework**: Next.js 16 with App Router, React 19, TypeScript
-- **AI Integration**: Vercel AI SDK 5 + OpenRouter (access to 100+ AI models)
+- **AI Integration**: OpenRouter API (image generation + text models)
 - **Authentication**: BetterAuth with Email/Password
 - **Database**: PostgreSQL with Drizzle ORM
 - **UI**: shadcn/ui components with Tailwind CSS 4
 - **Styling**: Tailwind CSS with dark mode support (next-themes)
+- **File Storage**: Vercel Blob (production) / local filesystem (dev)
 
 ## AI Integration with OpenRouter
 
@@ -20,14 +21,26 @@ This is a Next.js 16 boilerplate for building AI-powered applications with authe
 - This project uses **OpenRouter** as the AI provider, NOT direct OpenAI
 - OpenRouter provides access to 100+ AI models through a single unified API
 - Default model: `openai/gpt-5-mini` (configurable via `OPENROUTER_MODEL` env var)
+- Image generation model: `google/gemini-3.1-flash-image-preview` (configurable via `OPENROUTER_IMAGE_MODEL`)
 - Users browse models at: https://openrouter.ai/models
 - Users get API keys from: https://openrouter.ai/settings/keys
 
 ### AI Implementation Files
 
 - `src/app/api/chat/route.ts` - Chat API endpoint using OpenRouter
+- `src/app/api/generate-plush/route.ts` - Image generation endpoint using OpenRouter multimodal
 - Package: `@openrouter/ai-sdk-provider` (not `@ai-sdk/openai`)
 - Import: `import { openrouter } from "@openrouter/ai-sdk-provider"`
+
+### Image Generation (Plush Toy)
+
+- Endpoint: `POST /api/generate-plush` — receives `imageUrl` + `style`, returns `generatedImageUrl`
+- Uses OpenRouter chat completions with `modalities: ["text", "image"]`
+- Input image is sent as a base64 data URL in the multimodal content array
+- Response parsing handles multiple Gemini output formats: `images[]`, `inline_data`, `image_url`, `files[]`
+- Prompt is defined in `BASE_PLUSH_PROMPT` (Portuguese) in the route file
+- Credits are deducted server-side after successful generation
+- Generated images are uploaded to storage under `bob-app-saas/generated/{userId}/`
 
 ## Project Structure
 
@@ -42,40 +55,40 @@ src/
 │   ├── api/
 │   │   ├── auth/[...all]/       # Better Auth catch-all route
 │   │   ├── chat/route.ts        # AI chat endpoint (OpenRouter)
+│   │   ├── generate-plush/      # Image generation (OpenRouter multimodal)
+│   │   ├── upload-image/        # Image upload to storage
+│   │   ├── gallery/             # Gallery CRUD (list + delete by ID)
+│   │   ├── user/credits/        # Get current user credits
 │   │   └── diagnostics/         # System diagnostics
 │   ├── chat/page.tsx            # AI chat interface (protected)
-│   ├── dashboard/page.tsx       # User dashboard (protected)
+│   ├── dashboard/page.tsx       # Plush generator dashboard (protected)
+│   ├── gallery/page.tsx         # User image gallery (protected)
 │   ├── profile/page.tsx         # User profile (protected)
 │   ├── page.tsx                 # Home/landing page
 │   └── layout.tsx               # Root layout
 ├── components/
 │   ├── auth/                    # Authentication components
-│   │   ├── sign-in-button.tsx   # Sign in form
-│   │   ├── sign-up-form.tsx     # Sign up form
+│   │   ├── sign-in-button.tsx
+│   │   ├── sign-up-form.tsx
 │   │   ├── forgot-password-form.tsx
 │   │   ├── reset-password-form.tsx
 │   │   ├── sign-out-button.tsx
 │   │   └── user-profile.tsx
 │   ├── ui/                      # shadcn/ui components
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── dialog.tsx
-│   │   ├── dropdown-menu.tsx
-│   │   ├── avatar.tsx
-│   │   ├── badge.tsx
-│   │   ├── separator.tsx
-│   │   ├── mode-toggle.tsx      # Dark/light mode toggle
-│   │   └── github-stars.tsx
+│   ├── before-after-slider.tsx  # Drag slider comparing original vs plush
+│   ├── credits-display.tsx      # Shows remaining user credits
+│   ├── generation-status.tsx    # Progress/status during generation
+│   ├── image-upload-zone.tsx    # Drag-and-drop image upload
+│   ├── quality-toggle.tsx       # Generation quality selector
+│   ├── style-selector.tsx       # Plush style selector
 │   ├── site-header.tsx          # Main navigation header
 │   ├── site-footer.tsx          # Footer component
-│   ├── theme-provider.tsx       # Dark mode provider
-│   ├── setup-checklist.tsx      # Setup guide component
-│   └── starter-prompt-modal.tsx # Starter prompts modal
+│   └── theme-provider.tsx       # Dark mode provider
 └── lib/
     ├── auth.ts                  # Better Auth server config
     ├── auth-client.ts           # Better Auth client hooks
     ├── db.ts                    # Database connection
-    ├── schema.ts                # Drizzle schema (users, sessions, etc.)
+    ├── schema.ts                # Drizzle schema (users, generatedImage, etc.)
     ├── storage.ts               # File storage abstraction (Vercel Blob / local)
     └── utils.ts                 # Utility functions (cn, etc.)
 ```
@@ -93,7 +106,8 @@ BETTER_AUTH_SECRET=32-char-random-string
 
 # AI via OpenRouter
 OPENROUTER_API_KEY=sk-or-v1-your-key
-OPENROUTER_MODEL=openai/gpt-5-mini  # or any model from openrouter.ai/models
+OPENROUTER_MODEL=openai/gpt-5-mini        # Text model for chat
+OPENROUTER_IMAGE_MODEL=google/gemini-3.1-flash-image-preview  # Image generation model
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
