@@ -43,6 +43,13 @@
       "when": 1772322996648,
       "tag": "0005_soft_gauntlet",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772556932856,
+      "tag": "0006_colossal_dust",
+      "breakpoints": true
     }
   ]
 }

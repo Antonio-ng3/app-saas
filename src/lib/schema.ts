@@ -90,14 +90,20 @@ export const generatedImage = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    originalImageUrl: text("original_image_url").notNull(),
-    generatedImageUrl: text("generated_image_url").notNull(),
+    originalImageUrl: text("original_image_url"),
+    generatedImageUrl: text("generated_image_url"),
     style: text("style").notNull(),
+    inngestRunId: text("inngest_run_id"),
+    status: text("status").notNull().default("complete"),
+    // "pending" | "complete" | "failed"
+    errorMessage: text("error_message"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     isFavorite: boolean("is_favorite").default(false).notNull(),
   },
   (table) => [
     index("generated_image_user_id_idx").on(table.userId),
     index("generated_image_created_at_idx").on(table.createdAt),
+    index("generated_image_inngest_run_id_idx").on(table.inngestRunId),
   ]
 );
+

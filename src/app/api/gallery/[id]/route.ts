@@ -32,9 +32,9 @@ export async function DELETE(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Delete files from storage
-  await deleteFile(record.originalImageUrl);
-  await deleteFile(record.generatedImageUrl);
+  // Delete files from storage (may be null for pending/failed records)
+  if (record.originalImageUrl) await deleteFile(record.originalImageUrl);
+  if (record.generatedImageUrl) await deleteFile(record.generatedImageUrl);
 
   // Delete database record
   await db.delete(generatedImage).where(eq(generatedImage.id, id));

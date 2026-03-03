@@ -29,17 +29,16 @@ export default function DashboardPage() {
   const [generationState, setGenerationState] = React.useState<GenerationState>("idle")
   const [progress, setProgress] = React.useState(0)
 
+  const [pollingRef, setPollingRef] = React.useState<ReturnType<typeof setInterval> | null>(null)
+
   const handleGenerate = async () => {
     if (!selectedImage || credits <= 0) return
 
     setGenerationState("analyzing")
-    setProgress(0)
+    setProgress(10)
 
     try {
       // Step 1: Upload the image
-      setProgress(10)
-
-      // Convert base64 to blob
       const response = await fetch(selectedImage)
       const blob = await response.blob()
       const formData = new FormData()
@@ -55,21 +54,16 @@ export default function DashboardPage() {
       }
 
       const { url: uploadedImageUrl } = await uploadResponse.json()
-      setProgress(30)
+      setProgress(25)
 
-      // Step 2: Generate plush using AI
+      // Step 2: Dispatch to Inngest (returns immediately with recordId)
       setGenerationState("generating")
-      setProgress(40)
+      setProgress(35)
 
       const generateResponse = await fetch("/api/generate-plush", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          imageUrl: uploadedImageUrl,
-          style: selectedStyle,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: uploadedImageUrl, style: selectedStyle }),
       })
 
       // Handle 402 Payment Required (insufficient credits)
@@ -84,19 +78,48 @@ export default function DashboardPage() {
 
       if (!generateResponse.ok) {
         const errorData = await generateResponse.json()
-        throw new Error(errorData.error || "Failed to generate plush")
+        throw new Error(errorData.error || "Failed to dispatch generation")
       }
 
-      const data = await generateResponse.json()
-      // API returns originalImageUrl and generatedImageUrl
-      setPlushImageUrl(data.generatedImageUrl)
-      setProgress(100)
-      setGenerationState("complete")
+      const { recordId } = await generateResponse.json()
+      setProgress(45)
 
-      // Refresh credits (server already deducted)
-      refreshCredits()
+      // Step 3: Poll for completion every 2s
+      let elapsed = 0
+      const interval = setInterval(async () => {
+        elapsed += 2
 
-      toast.success("Pelúcia gerada com sucesso!")
+        // Animate progress up to 90% while waiting (never reaches 100% until done)
+        const animatedProgress = Math.min(45 + elapsed * 1.5, 90)
+        setProgress(animatedProgress)
+
+        try {
+          const statusResponse = await fetch(
+            `/api/generate-plush/status?recordId=${recordId}`
+          )
+          const status = await statusResponse.json()
+
+          if (status.status === "complete") {
+            clearInterval(interval)
+            setPollingRef(null)
+            setPlushImageUrl(status.generatedImageUrl)
+            setProgress(100)
+            setGenerationState("complete")
+            refreshCredits()
+            toast.success("Pelúcia gerada com sucesso!")
+          } else if (status.status === "failed") {
+            clearInterval(interval)
+            setPollingRef(null)
+            toast.error(status.error ?? "Ocorreu um erro ao gerar sua pelúcia.")
+            setGenerationState("error")
+          }
+          // "pending" → keep polling
+        } catch {
+          // Network error during polling — keep trying
+        }
+      }, 2000)
+
+      setPollingRef(interval)
     } catch (error) {
       console.error("Error generating plush:", error)
       toast.error("Ocorreu um erro ao gerar sua pelúcia. Tente novamente.")
@@ -104,7 +127,15 @@ export default function DashboardPage() {
     }
   }
 
+  // Cleanup polling on unmount
+  React.useEffect(() => {
+    return () => {
+      if (pollingRef) clearInterval(pollingRef)
+    }
+  }, [pollingRef])
+
   const [plushImageUrl, setPlushImageUrl] = React.useState<string | null>(null)
+
 
   const handleReset = () => {
     setGenerationState("idle")

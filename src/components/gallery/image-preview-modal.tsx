@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import type { PlushieGeneration } from "@/types/plush"
@@ -115,6 +116,8 @@ export function ImagePreviewModal({
         showCloseButton={false}
         onInteractOutside={(e) => e.preventDefault()}
       >
+        <DialogTitle className="sr-only">Visualizar pelúcia gerada</DialogTitle>
+
         {/* Close Button */}
         <button
           onClick={onClose}
