@@ -66,6 +66,7 @@
     "typescript": "^5.9.3"
   },
   "pnpm": {
+    "onlyBuiltDependencies": ["sharp", "esbuild", "msw", "unrs-resolver"],
     "overrides": {
       "@types/react": "19.2.5",
       "@types/react-dom": "19.2.3"
