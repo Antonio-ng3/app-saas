@@ -30,6 +30,7 @@ const serverEnvSchema = z.object({
 
   // Inngest Cloud (optional - for production background jobs)
   INNGEST_EVENT_KEY: z.string().optional(),
+  INNGEST_SIGNING_KEY: z.string().optional(),
 
   // App
   NODE_ENV: z
