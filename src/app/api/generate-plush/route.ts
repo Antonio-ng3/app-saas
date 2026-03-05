@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Dispatch to Inngest (returns immediately, < 1s)
+    console.log("[Inngest] Sending event...", { userId: session.user.id, recordId });
     const result = await inngest.send({
       name: "plush/generate.requested",
       data: {
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
         recordId,
       },
     });
+    console.log("[Inngest] Event sent!", { runId: result.ids?.[0], recordId });
 
     // Save the Inngest run ID back to the record for polling
     const inngestRunId = result.ids?.[0] ?? null;
