@@ -28,6 +28,9 @@ const serverEnvSchema = z.object({
   // Storage
   BLOB_READ_WRITE_TOKEN: z.string().optional(),
 
+  // Inngest Cloud (optional - for production background jobs)
+  INNGEST_EVENT_KEY: z.string().optional(),
+
   // App
   NODE_ENV: z
     .enum(["development", "production", "test"])
