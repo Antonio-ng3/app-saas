@@ -42,6 +42,17 @@ export const plushGenerateFunction = inngest.createFunction(
             recordId: string;
         };
 
+        console.log("[generate-plush] Function started", {
+            userId,
+            recordId,
+            imageUrl: imageUrl.substring(0, 80) + "...",
+            style: _style,
+            appUrl: process.env.NEXT_PUBLIC_APP_URL,
+            hasOpenRouterKey: !!process.env.OPENROUTER_API_KEY,
+            hasBlobToken: !!process.env.BLOB_READ_WRITE_TOKEN,
+            forceLocalStorage: process.env.FORCE_LOCAL_STORAGE,
+        });
+
         // ─── Step 1: Upload original image ───────────────────────────────────────
         const { originalImageUrl, originalBase64DataUrl } = await step.run(
             "upload-original-image",

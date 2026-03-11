@@ -1,15 +1,6 @@
-# plugins: Polar
-
-URL: /docs/plugins/polar
-Source: https://raw.githubusercontent.com/better-auth/better-auth/refs/heads/main/docs/content/docs/plugins/polar.mdx
-
-Better Auth Plugin for Payment and Checkouts using Polar
-
 ---
-
 title: Polar
 description: Better Auth Plugin for Payment and Checkouts using Polar
-
 ---
 
 [Polar](https://polar.sh) is a developer first payment infrastructure. Out of the box it provides a lot of developer first integrations for payments, checkouts and more. This plugin helps you integrate Polar with Better Auth to make your auth + payments flow seamless.
@@ -104,7 +95,7 @@ You will be using the BetterAuth Client to interact with the Polar functionaliti
 
 ```typescript
 import { createAuthClient } from "better-auth/react";
-import { polarClient } from "@polar-sh/better-auth";
+import { polarClient } from "@polar-sh/better-auth/client";
 
 // This is all that is needed
 // All Polar plugins, etc. should be attached to the server-side BetterAuth config

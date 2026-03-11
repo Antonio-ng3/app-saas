@@ -60,7 +60,7 @@ export function GalleryItemCard({
     onView(item)
   }
 
-  if (item.status === "processing") {
+  if (item.status === "processing" || item.status === "queued") {
     return (
       <div
         className={cn(
@@ -75,6 +75,23 @@ export function GalleryItemCard({
     )
   }
 
+  if (item.status === "failed") {
+    return (
+      <div
+        className={cn(
+          "group relative overflow-hidden rounded-lg border bg-muted",
+          "aspect-square flex flex-col items-center justify-center gap-3"
+        )}
+      >
+        <span className="text-sm text-muted-foreground">Geração falhou</span>
+        <Badge variant="destructive">Falhou</Badge>
+      </div>
+    )
+  }
+
+  // Guard: if url is empty/null/undefined, show placeholder instead of breaking Image
+  const hasValidUrl = item.url && item.url.trim() !== ""
+
   return (
     <div
       className={cn(
@@ -87,7 +104,7 @@ export function GalleryItemCard({
       onClick={handleView}
     >
       {/* Image */}
-      {imageError ? (
+      {imageError || !hasValidUrl ? (
         <div className="flex h-full w-full items-center justify-center bg-muted">
           <span className="text-sm text-muted-foreground">Imagem não disponível</span>
         </div>

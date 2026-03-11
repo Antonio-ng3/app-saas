@@ -33,7 +33,7 @@ import {
 import { STYLE_LABELS_PT, ALL_STYLES_LABEL } from "@/constants/plush"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import type { PlushieGeneration, FilterOptions, PlushStyle } from "@/types/plush"
+import type { PlushieGeneration, PlushieStatus, FilterOptions, PlushStyle } from "@/types/plush"
 
 export default function GalleryPage() {
   // ALL hooks must be called first, before any conditional returns
@@ -64,19 +64,20 @@ export default function GalleryPage() {
         // Map API response to PlushieGeneration format
         const mappedData: PlushieGeneration[] = data.map((item: {
           id: string
-          originalImageUrl: string
-          generatedImageUrl: string
+          originalImageUrl: string | null
+          generatedImageUrl: string | null
           style: string
+          status: string
           createdAt: string
           isFavorite: boolean
         }) => ({
           id: item.id,
-          url: item.generatedImageUrl,
-          originalUrl: item.originalImageUrl,
+          url: item.generatedImageUrl ?? "",
+          originalUrl: item.originalImageUrl ?? undefined,
           createdAt: new Date(item.createdAt),
           style: item.style as PlushStyle,
           isFavorite: item.isFavorite,
-          status: "complete" as const,
+          status: (item.status === "complete" ? "complete" : item.status === "failed" ? "failed" : "processing") as PlushieStatus,
         }))
         setItems(mappedData)
       } catch (error) {
