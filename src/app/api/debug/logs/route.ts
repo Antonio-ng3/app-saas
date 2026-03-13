@@ -38,7 +38,6 @@ export async function GET() {
       errorMessage: r.errorMessage,
       inngestRunId: r.inngestRunId,
       createdAt: r.createdAt,
-      updatedAt: r.updatedAt,
     })),
     failedRecords: failed.map(r => ({
       id: r.id,
