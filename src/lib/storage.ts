@@ -1,6 +1,3 @@
-import { existsSync } from "fs";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 import { put, del } from "@vercel/blob";
 
 /**
@@ -140,58 +137,50 @@ export async function upload(
   folder?: string,
   config?: StorageConfig
 ): Promise<StorageResult> {
-  // Sanitize filename
   const sanitizedFilename = sanitizeFilename(filename);
 
-  // Validate file
   const validation = validateFile(buffer, sanitizedFilename, config);
   if (!validation.valid) {
     throw new Error(validation.error);
   }
 
   const hasVercelBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
-  const forceLocalStorage = Boolean(process.env.FORCE_LOCAL_STORAGE);
 
-  if (hasVercelBlob && !forceLocalStorage) {
-    // Use Vercel Blob storage
-    const pathname = folder ? `${folder}/${sanitizedFilename}` : sanitizedFilename;
-    try {
-      const blob = await put(pathname, buffer, {
-        access: 'public',
-        addRandomSuffix: true,
-      });
+  if (!hasVercelBlob) {
+    // Em desenvolvimento local sem BLOB_READ_WRITE_TOKEN, usar filesystem
+    if (process.env.NODE_ENV === "development") {
+      const { existsSync } = await import("fs");
+      const { writeFile, mkdir } = await import("fs/promises");
+      const { join } = await import("path");
 
-      return {
-        url: blob.url,
-        pathname: blob.pathname,
-      };
-    } catch (error) {
-      // If Vercel Blob fails (e.g., private store), fall back to local storage
-      console.warn("Vercel Blob upload failed, falling back to local storage:", error);
+      const uploadsDir = join(process.cwd(), "public", "uploads");
+      const targetDir = folder ? join(uploadsDir, folder) : uploadsDir;
+
+      if (!existsSync(targetDir)) {
+        await mkdir(targetDir, { recursive: true });
+      }
+
+      const filepath = join(targetDir, sanitizedFilename);
+      await writeFile(filepath, buffer);
+
+      const pathname = folder ? `${folder}/${sanitizedFilename}` : sanitizedFilename;
+      return { url: `/uploads/${pathname}`, pathname };
     }
+
+    // Em produção sem token = erro claro
+    throw new Error(
+      "BLOB_READ_WRITE_TOKEN não configurado. Configure no dashboard do Vercel."
+    );
   }
 
-  // Use local filesystem storage (or fallback from Vercel Blob)
-  const uploadsDir = join(process.cwd(), "public", "uploads");
-  const targetDir = folder ? join(uploadsDir, folder) : uploadsDir;
-
-  // Ensure the directory exists
-  if (!existsSync(targetDir)) {
-    await mkdir(targetDir, { recursive: true });
-  }
-
-  // Write the file
-  const filepath = join(targetDir, sanitizedFilename);
-  await writeFile(filepath, buffer);
-
-  // Return local URL
+  // Vercel Blob — sem fallback silencioso
   const pathname = folder ? `${folder}/${sanitizedFilename}` : sanitizedFilename;
-  const url = `/uploads/${pathname}`;
+  const blob = await put(pathname, buffer, {
+    access: "public",
+    addRandomSuffix: true,
+  });
 
-  return {
-    url,
-    pathname,
-  };
+  return { url: blob.url, pathname: blob.pathname };
 }
 
 /**
@@ -213,14 +202,21 @@ export async function deleteFile(url: string): Promise<void> {
     // Delete from Vercel Blob
     await del(url);
   } else {
-    // Delete from local filesystem
+    // Delete from local filesystem (dev only)
+    if (process.env.NODE_ENV !== "development") {
+      throw new Error("Cannot delete files from local filesystem in production without BLOB_READ_WRITE_TOKEN.");
+    }
+
     // Extract pathname from URL (e.g., /uploads/avatars/avatar.png -> avatars/avatar.png)
     const pathname = url.replace(/^\/uploads\//, "");
+    const { join } = await import("path");
+    const { existsSync } = await import("fs");
+    const { unlink } = await import("fs/promises");
+
     const filepath = join(process.cwd(), "public", "uploads", pathname);
 
     // Only attempt to delete if file exists
     if (existsSync(filepath)) {
-      const { unlink } = await import("fs/promises");
       await unlink(filepath);
     }
   }
