@@ -28,11 +28,10 @@ import { MOCK_PLUSHIES } from "@/lib/mock-data";
 import type { PlushStyle } from "@/types/plush";
 
 export default function HomePage() {
-  // Mock images for before/after slider
-  // Demonstrates the plush transformation: original photo → plush version that covers it
-  // The "after" image (plush) slides over the "before" image (original person)
-  const mockBeforeImage = "https://images.unsplash.com/photo-1544376798-89aa6b82c6cd?w=800&q=80"; // Original person
-  const mockAfterImage = "https://images.unsplash.com/photo-1562040506-a9b32cb51b94?w=800&q=80"; // Plush version
+  // Before/After slider images - using local examples
+  // Demonstrates the plush transformation: original photo → plush version
+  const mockBeforeImage = "/images/examples/antes.jpg";
+  const mockAfterImage = "/images/examples/Uma_verso_de_pelcia_macia_e_de_alta_qualidade_do_p_41fd6090f2.jpeg";
 
   // Mock gallery images
   const galleryImages = MOCK_PLUSHIES.map((item) => ({
