@@ -1,101 +1,63 @@
-# Agentic Coding Boilerplate - AI Assistant Guidelines
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-This is a Next.js 16 boilerplate for building AI-powered applications with authentication, database, and modern UI components.
+This is a Next.js 16 SaaS application that transforms user photos into plush toy images using AI. The app uses Inngest for async background processing, BetterAuth for authentication, PostgreSQL with Drizzle ORM, and private Blob storage with authenticated proxy.
 
 ### Tech Stack
 
 - **Framework**: Next.js 16 with App Router, React 19, TypeScript
-- **AI Integration**: OpenRouter API (image generation + text models)
+- **AI Integration**: OpenRouter API for image generation (multimodal)
+- **Job Processing**: Inngest (Cloud or Dev Server) for async plush generation
 - **Authentication**: BetterAuth with Email/Password
 - **Database**: PostgreSQL with Drizzle ORM
 - **UI**: shadcn/ui components with Tailwind CSS 4
-- **Styling**: Tailwind CSS with dark mode support (next-themes)
-- **File Storage**: Vercel Blob (production) / local filesystem (dev)
+- **File Storage**: Vercel Blob (private, with authenticated proxy) / local filesystem (dev)
 
-## AI Integration with OpenRouter
+## Critical Architecture
 
-### Key Points
+### Private Blob Storage with Authenticated Proxy
 
-- This project uses **OpenRouter** as the AI provider, NOT direct OpenAI
-- OpenRouter provides access to 100+ AI models through a single unified API
-- Default model: `openai/gpt-5-mini` (configurable via `OPENROUTER_MODEL` env var)
-- Image generation model: `google/gemini-3.1-flash-image-preview` (configurable via `OPENROUTER_IMAGE_MODEL`)
-- Users browse models at: https://openrouter.ai/models
-- Users get API keys from: https://openrouter.ai/settings/keys
+**Important**: Images are stored as PRIVATE in Vercel Blob. Users can only access their own images through an authenticated proxy.
 
-### AI Implementation Files
+- Storage: `src/lib/storage.ts` uploads with `access: "private"`
+- Proxy: `src/app/api/images/[...path]/route.ts` serves images after verifying user owns them
+- URL conversion: `blobUrlToProxyUrl()` converts Blob URLs to proxy URLs for API responses
 
-- `src/app/api/chat/route.ts` - Chat API endpoint using OpenRouter
-- `src/app/api/generate-plush/route.ts` - Image generation endpoint using OpenRouter multimodal
-- Package: `@openrouter/ai-sdk-provider` (not `@ai-sdk/openai`)
-- Import: `import { openrouter } from "@openrouter/ai-sdk-provider"`
+When working with image URLs:
+- **Saving to DB**: Save the Blob URL or pathname from `upload()` result
+- **Returning to client**: Use `blobUrlToProxyUrl()` to convert to `/api/images/...` URLs
+- **Direct access**: Never return Blob URLs directly to clients
 
-### Image Generation (Plush Toy)
+### Inngest Background Processing
 
-- Endpoint: `POST /api/generate-plush` — receives `imageUrl` + `style`, returns `generatedImageUrl`
-- Uses OpenRouter chat completions with `modalities: ["text", "image"]`
-- Input image is sent as a base64 data URL in the multimodal content array
-- Response parsing handles multiple Gemini output formats: `images[]`, `inline_data`, `image_url`, `files[]`
-- Prompt is defined in `BASE_PLUSH_PROMPT` (Portuguese) in the route file
-- Credits are deducted server-side after successful generation
-- Generated images are uploaded to storage under `bob-app-saas/generated/{userId}/`
+Plush generation runs async through Inngest to avoid timeout issues:
 
-## Project Structure
+1. Client calls `POST /api/generate-plush` → creates "pending" record, dispatches event
+2. Inngest function `generate-plush` processes:
+   - Step 1: Fetch and re-upload original image
+   - Step 2: Call OpenRouter multimodal API for generation
+   - Step 3: Save result and debit credit
+3. Client polls `GET /api/generate-plush/status?recordId=X` until "complete"
 
-```
-src/
-├── app/                          # Next.js App Router
-│   ├── (auth)/                  # Auth route group
-│   │   ├── login/               # Login page
-│   │   ├── register/            # Registration page
-│   │   ├── forgot-password/     # Forgot password page
-│   │   └── reset-password/      # Reset password page
-│   ├── api/
-│   │   ├── auth/[...all]/       # Better Auth catch-all route
-│   │   ├── chat/route.ts        # AI chat endpoint (OpenRouter)
-│   │   ├── generate-plush/      # Image generation (OpenRouter multimodal)
-│   │   ├── upload-image/        # Image upload to storage
-│   │   ├── gallery/             # Gallery CRUD (list + delete by ID)
-│   │   ├── user/credits/        # Get current user credits
-│   │   └── diagnostics/         # System diagnostics
-│   ├── chat/page.tsx            # AI chat interface (protected)
-│   ├── dashboard/page.tsx       # Plush generator dashboard (protected)
-│   ├── gallery/page.tsx         # User image gallery (protected)
-│   ├── profile/page.tsx         # User profile (protected)
-│   ├── page.tsx                 # Home/landing page
-│   └── layout.tsx               # Root layout
-├── components/
-│   ├── auth/                    # Authentication components
-│   │   ├── sign-in-button.tsx
-│   │   ├── sign-up-form.tsx
-│   │   ├── forgot-password-form.tsx
-│   │   ├── reset-password-form.tsx
-│   │   ├── sign-out-button.tsx
-│   │   └── user-profile.tsx
-│   ├── ui/                      # shadcn/ui components
-│   ├── before-after-slider.tsx  # Drag slider comparing original vs plush
-│   ├── credits-display.tsx      # Shows remaining user credits
-│   ├── generation-status.tsx    # Progress/status during generation
-│   ├── image-upload-zone.tsx    # Drag-and-drop image upload
-│   ├── quality-toggle.tsx       # Generation quality selector
-│   ├── style-selector.tsx       # Plush style selector
-│   ├── site-header.tsx          # Main navigation header
-│   ├── site-footer.tsx          # Footer component
-│   └── theme-provider.tsx       # Dark mode provider
-└── lib/
-    ├── auth.ts                  # Better Auth server config
-    ├── auth-client.ts           # Better Auth client hooks
-    ├── db.ts                    # Database connection
-    ├── schema.ts                # Drizzle schema (users, generatedImage, etc.)
-    ├── storage.ts               # File storage abstraction (Vercel Blob / local)
-    └── utils.ts                 # Utility functions (cn, etc.)
-```
+**Inngest configuration** (`src/inngest/client.ts`):
+- With `INNGEST_EVENT_KEY`: Uses Inngest Cloud
+- Without: Uses local Dev Server (requires running `npx inngest-cli dev`)
+
+**Important**: When fetching images from private Blob storage in Inngest, use `get()` from `@vercel/blob` with `access: "private"`.
+
+### AI Image Generation
+
+- Model: `google/gemini-3.1-flash-image-preview` via OpenRouter
+- Prompt ordering: Text FIRST, then image (better model comprehension)
+- Prompt defined in: `src/inngest/functions/generate-plush.ts` (`BASE_PLUSH_PROMPT`)
+- Images stored under: `bob-app-saas/originals/{userId}/` and `bob-app-saas/generated/{userId}/`
 
 ## Environment Variables
 
-Required environment variables (see `env.example`):
+Required for production:
 
 ```env
 # Database
@@ -106,159 +68,86 @@ BETTER_AUTH_SECRET=32-char-random-string
 
 # AI via OpenRouter
 OPENROUTER_API_KEY=sk-or-v1-your-key
-OPENROUTER_MODEL=openai/gpt-5-mini        # Text model for chat
-OPENROUTER_IMAGE_MODEL=google/gemini-3.1-flash-image-preview  # Image generation model
+OPENROUTER_MODEL=openai/gpt-4o-mini
+OPENROUTER_IMAGE_MODEL=google/gemini-3.1-flash-image-preview
+
+# Inngest (optional - for async plush generation)
+INNGEST_EVENT_KEY=  # Set for Inngest Cloud, leave empty for Dev Server
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# File Storage (optional)
-BLOB_READ_WRITE_TOKEN=  # Leave empty for local dev, set for Vercel Blob in production
+# File Storage
+BLOB_READ_WRITE_TOKEN=  # Required for private Blob storage in production
 ```
 
 ## Available Scripts
 
 ```bash
-npm run dev          # Start dev server (DON'T run this yourself - ask user)
-npm run build        # Build for production (runs db:migrate first)
-npm run build:ci     # Build without database (for CI/CD pipelines)
-npm run start        # Start production server
-npm run lint         # Run ESLint (ALWAYS run after changes)
-npm run typecheck    # TypeScript type checking (ALWAYS run after changes)
-npm run db:generate  # Generate database migrations
-npm run db:migrate   # Run database migrations
-npm run db:push      # Push schema changes to database
-npm run db:studio    # Open Drizzle Studio (database GUI)
-npm run db:dev       # Push schema for development
-npm run db:reset     # Reset database (drop all tables)
+pnpm run dev          # Start dev server with Turbopack
+pnpm run build        # Build for production (runs db:migrate first)
+pnpm run start        # Start production server
+pnpm run check        # Run lint AND typecheck together
+pnpm run lint         # Run ESLint
+pnpm run typecheck    # TypeScript type checking
+pnpm run db:generate  # Generate database migrations
+pnpm run db:migrate   # Run database migrations
+pnpm run db:push      # Push schema changes to database
+pnpm run db:studio    # Open Drizzle Studio (database GUI)
 ```
-
-## Documentation Files
-
-The project includes technical documentation in `docs/`:
-
-- `docs/technical/ai/streaming.md` - AI streaming implementation guide
-- `docs/technical/ai/structured-data.md` - Structured data extraction
-- `docs/technical/react-markdown.md` - Markdown rendering guide
-- `docs/technical/betterauth/polar.md` - Polar payment integration
-- `docs/business/starter-prompt.md` - Business context for AI prompts
 
 ## Guidelines for AI Assistants
 
 ### CRITICAL RULES
 
-1. **ALWAYS run lint and typecheck** after completing changes:
+1. **ALWAYS run `pnpm run check`** (lint + typecheck) after completing changes
 
-   ```bash
-   npm run lint && npm run typecheck
-   ```
-
-2. **NEVER start the dev server yourself**
-
-   - If you need dev server output, ask the user to provide it
-   - Don't run `npm run dev` or `pnpm dev`
+2. **NEVER start the dev server yourself** - ask the user to provide output if needed
 
 3. **Use OpenRouter, NOT OpenAI directly**
-
    - Import from `@openrouter/ai-sdk-provider`
-   - Use `openrouter()` function, not `openai()`
-   - Model names follow OpenRouter format: `provider/model-name`
+   - Model names: `provider/model-name`
 
-4. **Styling Guidelines**
-
-   - Stick to standard Tailwind CSS utility classes
-   - Use shadcn/ui color tokens (e.g., `bg-background`, `text-foreground`)
-   - Avoid custom colors unless explicitly requested
-   - Support dark mode with appropriate Tailwind classes
+4. **Private Blob Storage**
+   - Images are PRIVATE - use authenticated proxy for access
+   - Import: `import { upload, deleteFile, blobUrlToProxyUrl } from "@/lib/storage"`
+   - When fetching private images in Inngest: use `get()` with `access: "private"`
 
 5. **Authentication**
+   - Server: `import { auth } from "@/lib/auth"`
+   - Client: `import { useSession } from "@/lib/auth-client"`
 
-   - Server-side: Import from `@/lib/auth` (Better Auth instance)
-   - Client-side: Import hooks from `@/lib/auth-client`
-   - Protected routes should check session in Server Components
-   - Use existing auth components from `src/components/auth/`
+6. **Database**: Drizzle ORM (`@/lib/db`), PostgreSQL only
 
-6. **Database Operations**
-
-   - Use Drizzle ORM (imported from `@/lib/db`)
-   - Schema is defined in `@/lib/schema`
-   - Always run migrations after schema changes
-   - PostgreSQL is the database (not SQLite, MySQL, etc.)
-
-7. **File Storage**
-
-   - Use the storage abstraction from `@/lib/storage`
-   - Automatically uses local storage (dev) or Vercel Blob (production)
-   - Import: `import { upload, deleteFile } from "@/lib/storage"`
-   - Example: `const result = await upload(buffer, "avatar.png", "avatars")`
-   - Storage switches based on `BLOB_READ_WRITE_TOKEN` environment variable
-
-8. **Component Creation**
-
-   - Use existing shadcn/ui components when possible
-   - Follow the established patterns in `src/components/ui/`
-   - Support both light and dark modes
-   - Use TypeScript with proper types
-
-9. **API Routes**
-   - Follow Next.js 16 App Router conventions
-   - Use Route Handlers (route.ts files)
-   - Return Response objects
-   - Handle errors appropriately
-
-### Best Practices
-
-- Read existing code patterns before creating new features
-- Maintain consistency with established file structure
-- Use the documentation files when implementing related features
-- Test changes with lint and typecheck before considering complete
-- When modifying AI functionality, refer to `docs/technical/ai/` guides
+7. **API Routes**: Follow Next.js 16 App Router conventions
 
 ### Common Tasks
 
-**Adding a new page:**
+**Working with private images:**
+```typescript
+// Upload (returns Blob URL)
+import { upload, blobUrlToProxyUrl } from "@/lib/storage";
+const result = await upload(buffer, "image.png", "folder");
 
-1. Create in `src/app/[route]/page.tsx`
-2. Use Server Components by default
-3. Add to navigation if needed
+// Save to DB: result.url or result.pathname
 
-**Adding a new API route:**
+// Return to client: convert to proxy URL
+const proxyUrl = blobUrlToProxyUrl(result.url);
+```
 
-1. Create in `src/app/api/[route]/route.ts`
-2. Export HTTP method handlers (GET, POST, etc.)
-3. Use proper TypeScript types
+**Fetching private images in Inngest:**
+```typescript
+import { get } from "@vercel/blob";
 
-**Adding authentication to a page:**
+const blobResult = await get(imageUrl, { access: "private" });
+// Read from blobResult.stream
+```
 
-1. Import auth instance: `import { auth } from "@/lib/auth"`
-2. Get session: `const session = await auth.api.getSession({ headers: await headers() })`
-3. Check session and redirect if needed
-
-**Working with the database:**
-
+**Database operations:**
 1. Update schema in `src/lib/schema.ts`
-2. Generate migration: `npm run db:generate`
-3. Apply migration: `npm run db:migrate`
-4. Import `db` from `@/lib/db` to query
-
-**Modifying AI chat:**
-
-1. Backend: `src/app/api/chat/route.ts`
-2. Frontend: `src/app/chat/page.tsx`
-3. Reference streaming docs: `docs/technical/ai/streaming.md`
-4. Remember to use OpenRouter, not direct OpenAI
-
-**Working with file storage:**
-
-1. Import storage functions: `import { upload, deleteFile } from "@/lib/storage"`
-2. Upload files: `const result = await upload(fileBuffer, "filename.png", "folder")`
-3. Delete files: `await deleteFile(result.url)`
-4. Storage automatically uses local filesystem in dev, Vercel Blob in production
-5. Local files are saved to `public/uploads/` and served at `/uploads/`
+2. Generate: `pnpm run db:generate`
+3. Apply: `pnpm run db:migrate`
 
 ## Package Manager
 
-This project uses **pnpm** (see `pnpm-lock.yaml`). When running commands:
-
-- Use `pnpm` instead of `npm` when possible
-- Scripts defined in package.json work with `pnpm run [script]`
+This project uses **pnpm**. Use `pnpm run [script]` for commands.
