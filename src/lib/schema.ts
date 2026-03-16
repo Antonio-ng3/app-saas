@@ -92,7 +92,7 @@ export const generatedImage = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     originalImageUrl: text("original_image_url"),
     generatedImageUrl: text("generated_image_url"),
-    style: text("style").notNull(),
+    style: text("style"),
     inngestRunId: text("inngest_run_id"),
     status: text("status").notNull().default("complete"),
     // "pending" | "complete" | "failed"

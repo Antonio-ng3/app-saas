@@ -6,7 +6,7 @@ import { inngest } from "../client";
 import { get } from "@vercel/blob";
 
 // Plush transformation prompt (Portuguese)
-const BASE_PLUSH_PROMPT =
+const PLUSH_PROMPT =
     "TRANSFORME a imagem abaixo em um brinquedo de pelúcia. " +
     "NÃO copie a imagem original. Você deve CRIAR uma nova imagem de uma pelúcia baseada no personagem.\n\n" +
     "Uma versão de pelúcia macia e de alta qualidade do personagem principal desta imagem, " +
@@ -38,10 +38,9 @@ export const plushGenerateFunction = inngest.createFunction(
     },
     { event: "plush/generate.requested" },
     async ({ event, step }) => {
-        const { userId, imageUrl, style: _style, recordId } = event.data as {
+        const { userId, imageUrl, recordId } = event.data as {
             userId: string;
             imageUrl: string;
-            style: string;
             recordId: string;
         };
 
@@ -49,7 +48,6 @@ export const plushGenerateFunction = inngest.createFunction(
             userId,
             recordId,
             imageUrl: imageUrl.substring(0, 80) + "...",
-            style: _style,
             appUrl: process.env.NEXT_PUBLIC_APP_URL,
             hasOpenRouterKey: !!process.env.OPENROUTER_API_KEY,
             hasBlobToken: !!process.env.BLOB_READ_WRITE_TOKEN,
@@ -138,7 +136,7 @@ export const plushGenerateFunction = inngest.createFunction(
                         {
                             role: "user",
                             content: [
-                                { type: "text", text: BASE_PLUSH_PROMPT },
+                                { type: "text", text: PLUSH_PROMPT },
                                 { type: "image_url", image_url: { url: originalBase64DataUrl } },
                             ],
                         },

@@ -9,21 +9,19 @@ import { CreditsDisplay } from "@/components/credits-display"
 import { GenerationStatus } from "@/components/generation-status"
 import { ImageUploadZone } from "@/components/image-upload-zone"
 import { QualityToggle } from "@/components/quality-toggle"
-import { StyleSelector } from "@/components/style-selector"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useCredits } from "@/hooks/use-credits"
 import { useSession } from "@/lib/auth-client"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import type { GenerationState, PlushStyle, QualityLevel } from "@/types/plush"
+import type { GenerationState, QualityLevel } from "@/types/plush"
 
 export default function DashboardPage() {
   const { data: session, isPending } = useSession()
 
   // Dashboard state
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null)
-  const [selectedStyle, setSelectedStyle] = React.useState<PlushStyle>("classic-teddy")
   const [quality, setQuality] = React.useState<QualityLevel>("high")
   const { credits, refresh: refreshCredits } = useCredits()
   const [generationState, setGenerationState] = React.useState<GenerationState>("idle")
@@ -63,7 +61,7 @@ export default function DashboardPage() {
       const generateResponse = await fetch("/api/generate-plush", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: uploadedImageUrl, style: selectedStyle }),
+        body: JSON.stringify({ imageUrl: uploadedImageUrl }),
       })
 
       // Handle 402 Payment Required (insufficient credits)
@@ -208,17 +206,6 @@ export default function DashboardPage() {
                 onImageSelect={handleImageSelect}
                 onImageRemove={handleImageRemove}
                 selectedImage={selectedImage}
-                disabled={isGenerating}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Style Selector */}
-          <Card>
-            <CardContent className="pt-6">
-              <StyleSelector
-                value={selectedStyle}
-                onChange={setSelectedStyle}
                 disabled={isGenerating}
               />
             </CardContent>

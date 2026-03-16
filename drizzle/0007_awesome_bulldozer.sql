@@ -1,0 +1,1 @@
+ALTER TABLE "generated_image" ALTER COLUMN "style" DROP NOT NULL;

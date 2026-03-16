@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { imageUrl, style } = body;
+    const { imageUrl } = body;
 
     if (!imageUrl) {
       return NextResponse.json({ error: "imageUrl is required" }, { status: 400 });
@@ -44,7 +44,6 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       originalImageUrl: null,
       generatedImageUrl: null,
-      style: style ?? "classic",
       status: "pending",
       inngestRunId: null, // will be updated below
     });
@@ -68,7 +67,6 @@ export async function POST(req: NextRequest) {
         data: {
           userId: session.user.id,
           imageUrl,
-          style: style ?? "classic",
           recordId,
         },
       });
