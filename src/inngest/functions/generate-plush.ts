@@ -7,6 +7,8 @@ import { get } from "@vercel/blob";
 
 // Plush transformation prompt (Portuguese)
 const BASE_PLUSH_PROMPT =
+    "TRANSFORME a imagem abaixo em um brinquedo de pelúcia. " +
+    "NÃO copie a imagem original. Você deve CRIAR uma nova imagem de uma pelúcia baseada no personagem.\n\n" +
     "Uma versão de pelúcia macia e de alta qualidade do personagem principal desta imagem, " +
     "com cabeça desproporcionalmente grande, corpo pequeno e membros curtos. " +
     "Feita de tecido felpudo e aconchegante, com costuras visíveis e detalhes faciais bordados " +
@@ -136,8 +138,8 @@ export const plushGenerateFunction = inngest.createFunction(
                         {
                             role: "user",
                             content: [
-                                { type: "image_url", image_url: { url: originalBase64DataUrl } },
                                 { type: "text", text: BASE_PLUSH_PROMPT },
+                                { type: "image_url", image_url: { url: originalBase64DataUrl } },
                             ],
                         },
                     ],
