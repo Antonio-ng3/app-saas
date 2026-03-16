@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { user, generatedImage } from "@/lib/schema";
 import { upload } from "@/lib/storage";
 import { inngest } from "../client";
+import { get } from "@vercel/blob";
 
 // Plush transformation prompt (Portuguese)
 const BASE_PLUSH_PROMPT =
@@ -57,18 +58,49 @@ export const plushGenerateFunction = inngest.createFunction(
         const { originalImageUrl, originalBase64DataUrl } = await step.run(
             "upload-original-image",
             async () => {
-                const fullImageUrl = imageUrl.startsWith("http")
-                    ? imageUrl
-                    : `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}${imageUrl}`;
+                let originalBuffer: ArrayBuffer;
+                let contentType = "image/png";
 
-                const originalResponse = await fetch(fullImageUrl);
-                if (!originalResponse.ok) {
-                    throw new Error(`Failed to fetch original image: ${originalResponse.status}`);
+                // Verifica se a URL é do Vercel Blob (storage privado)
+                if (imageUrl.includes("blob.vercel-storage.com")) {
+                    // Usa a função get do Vercel Blob para acessar imagem privada
+                    const blobResult = await get(imageUrl, { access: "private" });
+                    if (!blobResult || !blobResult.stream) {
+                        throw new Error("Failed to fetch image from private Blob storage");
+                    }
+                    // Converte ReadableStream para ArrayBuffer
+                    const reader = blobResult.stream.getReader();
+                    const chunks: Uint8Array[] = [];
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        chunks.push(value);
+                    }
+                    // Combina todos os chunks em um único ArrayBuffer
+                    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+                    const combined = new Uint8Array(totalLength);
+                    let offset = 0;
+                    for (const chunk of chunks) {
+                        combined.set(chunk, offset);
+                        offset += chunk.length;
+                    }
+                    originalBuffer = combined.buffer;
+                    contentType = blobResult.blob.contentType || "image/png";
+                } else {
+                    // Fetch normal para URLs locais ou públicas
+                    const fullImageUrl = imageUrl.startsWith("http")
+                        ? imageUrl
+                        : `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}${imageUrl}`;
+
+                    const originalResponse = await fetch(fullImageUrl);
+                    if (!originalResponse.ok) {
+                        throw new Error(`Failed to fetch original image: ${originalResponse.status}`);
+                    }
+                    contentType = originalResponse.headers.get("content-type") || "image/png";
+                    originalBuffer = await originalResponse.arrayBuffer();
                 }
-                const contentType = originalResponse.headers.get("content-type") || "image/png";
-                const originalBuffer = await originalResponse.arrayBuffer();
-                const bufferNode = Buffer.from(originalBuffer);
 
+                const bufferNode = Buffer.from(originalBuffer);
                 const originalBase64DataUrl = `data:${contentType};base64,${bufferNode.toString("base64")}`;
 
                 const originalResult = await upload(
