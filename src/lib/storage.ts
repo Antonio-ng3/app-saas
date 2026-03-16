@@ -19,6 +19,71 @@ export interface StorageConfig {
 }
 
 /**
+ * Gets the public URL for accessing a stored file
+ *
+ * For Vercel Blob (private storage), returns a proxy URL that requires authentication
+ * For local storage, returns the direct path
+ *
+ * @param pathname - The pathname from StorageResult
+ * @returns Public URL to access the file
+ *
+ * @example
+ * ```ts
+ * const result = await upload(fileBuffer, "avatar.png", "avatars");
+ * const publicUrl = getPublicUrl(result.pathname);
+ * // Returns: /api/images/avatars/avatar-xxx.png (proxy for private storage)
+ * // or: /uploads/avatars/avatar.png (local storage)
+ * ```
+ */
+export function getPublicUrl(pathname: string): string {
+  const hasVercelBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+
+  if (hasVercelBlob) {
+    // Use proxy route for private Blob storage
+    return `/api/images/${pathname}`;
+  }
+
+  // Direct path for local filesystem
+  return `/uploads/${pathname}`;
+}
+
+/**
+ * Converts a Vercel Blob URL to a proxy URL
+ *
+ * Extracts the pathname from a Vercel Blob URL and returns a proxy URL
+ *
+ * @param blobUrl - The full URL from Vercel Blob (or a local path)
+ * @returns Proxy URL for accessing the file
+ *
+ * @example
+ * ```ts
+ * const proxyUrl = blobUrlToProxyUrl("https://xxx.blob.vercel-storage.com/bob-app-saas/originals/user/file.png");
+ * // Returns: /api/images/bob-app-saas/originals/user/file.png
+ * ```
+ */
+export function blobUrlToProxyUrl(blobUrl: string): string {
+  // Se já é um caminho local (começa com /), retorna como está
+  if (blobUrl.startsWith("/")) {
+    return blobUrl;
+  }
+
+  // Tenta fazer parse da URL do Blob
+  try {
+    const url = new URL(blobUrl);
+    // O pathname da URL do Blob contém o caminho do arquivo
+    // Ex: https://xxx.blob.vercel-storage.com/bob-app-saas/originals/user/file.png
+    //     pathname = /bob-app-saas/originals/user/file.png
+    const pathname = url.pathname;
+    // Remove a barra inicial se existir
+    const cleanPathname = pathname.startsWith("/") ? pathname.slice(1) : pathname;
+    return getPublicUrl(cleanPathname);
+  } catch {
+    // Se falhar o parse, assume que é um pathname direto
+    return getPublicUrl(blobUrl);
+  }
+}
+
+/**
  * Default storage configuration
  */
 const DEFAULT_CONFIG: Required<StorageConfig> = {
@@ -173,10 +238,11 @@ export async function upload(
     );
   }
 
-  // Vercel Blob — sem fallback silencioso
+  // Vercel Blob — armazenamento privado (imagens de usuário)
+  // As imagens são servidas via API route com autenticação
   const pathname = folder ? `${folder}/${sanitizedFilename}` : sanitizedFilename;
   const blob = await put(pathname, buffer, {
-    access: "public",
+    access: "private",
     addRandomSuffix: true,
   });
 

@@ -4,6 +4,7 @@ import { desc, eq, and, isNotNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generatedImage } from "@/lib/schema";
+import { blobUrlToProxyUrl } from "@/lib/storage";
 
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -23,5 +24,16 @@ export async function GET() {
     )
     .orderBy(desc(generatedImage.createdAt));
 
-  return NextResponse.json(images);
+  // Converte URLs do Blob para URLs do proxy (para acesso a imagens privadas)
+  const imagesWithProxyUrls = images.map((img) => ({
+    ...img,
+    originalImageUrl: img.originalImageUrl
+      ? blobUrlToProxyUrl(img.originalImageUrl)
+      : null,
+    generatedImageUrl: img.generatedImageUrl
+      ? blobUrlToProxyUrl(img.generatedImageUrl)
+      : null,
+  }));
+
+  return NextResponse.json(imagesWithProxyUrls);
 }
