@@ -20,7 +20,9 @@ const serverEnvSchema = z.object({
   // AI
   OPENROUTER_API_KEY: z.string().optional(),
   OPENROUTER_MODEL: z.string().default("openai/gpt-4o-mini"),
-  OPENROUTER_IMAGE_MODEL: z.string().default("google/gemini-3.1-flash-image-preview"),
+  // IMPORTANT: Use Sourceful for image-to-image transformation!
+  // Gemini models do NOT support img2img (they only do text-to-image)
+  OPENROUTER_IMAGE_MODEL: z.string().default("sourceful/riverflow-v2-fast"),
 
   // Image Generation (DALL-E / OpenAI for plush generation)
   OPENAI_API_KEY: z.string().optional(),
