@@ -50,9 +50,13 @@ Plush generation runs async through Inngest to avoid timeout issues:
 
 ### AI Image Generation
 
-- Model: `google/gemini-3.1-flash-image-preview` via OpenRouter
+- Model: `google/gemini-3.1-flash-image-preview` via OpenRouter (chat/completions endpoint)
+- Uses `modalities: ["image", "text"]` and `image_config` for aspect ratio/size control
+- System message forces generator behavior (not analysis/copy)
 - Prompt ordering: Text FIRST, then image (better model comprehension)
-- Prompt defined in: `src/inngest/functions/generate-plush.ts` (`BASE_PLUSH_PROMPT`)
+- Response parsing priority: `message.images[]` → `message.content[]` → `message.files[]`
+- Input image echo detection: skips content items matching the input image prefix
+- Prompts defined in: `src/inngest/functions/generate-plush.ts` (`SYSTEM_PROMPT`, `PLUSH_PROMPT`)
 - Images stored under: `bob-app-saas/originals/{userId}/` and `bob-app-saas/generated/{userId}/`
 
 ## Environment Variables
